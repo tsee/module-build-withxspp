@@ -9,14 +9,15 @@ my $build = Module::Build->new(
   requires       => {
     'ExtUtils::XSpp' => '0.11',
     'ExtUtils::CBuilder' => '0',
-    'Module::Build' => '0',
+    'Module::Build' => '0.26',
+    'ExtUtils::Typemap' => '0',
   },
   build_requires => {
     'ExtUtils::CBuilder' => '0',
-    'Module::Build' => '0',
+    'Module::Build' => '0.26',
   },
   configure_requires => {
-    'Module::Build' => '0',
+    'Module::Build' => '0.26',
   },
   test_requires  => {
     'Test::More' => '0',
