@@ -48,14 +48,71 @@ sub ACTION_code {
   my $self = shift;
   $self->depends_on('create_buildarea');
   $self->depends_on('generate_typemap');
+  $self->depends_on('generate_main_xs');
   return $self->SUPER::ACTION_code(@_);
+}
+
+sub ACTION_generate_main_xs {
+  my $self = shift;
+
+  my $xs_files = $self->find_xs_files;
+  $xs_files->{$_} = $_ foreach map $self->localize_file_path($_),
+                               glob("*.xs");
+
+  if (keys %$xs_files) { # user knows what she's doing
+    $self->log_info("Found custom XS files. Not auto-generating main XS file...\n");
+    return 1;
+  }
+
+  $self->log_info("Generating main XS file...\n");
+  my $xsp_files = $self->find_xsp_files;
+  my $xspt_files = $self->find_xsp_typemaps;
+
+  my $module_name = $self->module_name;
+  my $xs_code = <<"HERE";
+/*
+ * WARNING: This file was auto-generated. Changes will be lost!
+ */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+#include "ppport.h"
+#undef do_open
+#undef do_close
+#ifdef __cplusplus
+}
+#endif
+
+MODULE = $module_name	PACKAGE = $module_name
+
+HERE
+
+  my $typemap_args = '';
+  $typemap_args .= '-t ' . $_ . ' ' foreach keys %$xspt_files;
+
+  foreach my $xsp_file (keys %$xsp_files) {
+    my $cmd = "INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $xsp_file\n\n";
+    $xs_code .= $cmd;
+  }
+
+  my $outfile = File::Spec->catdir('buildtmp', 'main.xs');
+  open my $fh, '>', $outfile
+    or die "Could not open '$outfile' for writing: $!";
+  print $fh $xs_code;
+  close $fh;
+
+  return 1;
 }
 
 sub ACTION_generate_typemap {
   my $self = shift;
   $self->depends_on('create_buildarea');
 
-  $self->log_info("Processing XS typemap files...");
+  $self->log_info("Processing XS typemap files...\n");
 
   require ExtUtils::Typemap;
   require File::Spec;
@@ -98,7 +155,7 @@ sub find_xsp_files  {
   # XS++ typemaps aren't XSP files in this regard
   foreach my $file (keys %$files) {
     delete $files->{$file}
-      if File::Basename::basename($file) =~ /^typemap.*\.xsp$/; 
+      if File::Basename::basename($file) eq 'typemap.xsp';
   }
 
   return $files;
@@ -114,10 +171,15 @@ sub find_xsp_typemaps {
   # XS++ typemaps aren't XSP files in this regard
   foreach my $file (keys %$files) {
     delete $files->{$file}
-      if File::Basename::basename($file) !~ /^typemap.*\.xsp$/; 
+      if File::Basename::basename($file) !~ /^typemap\.xsp$/;
   }
 
-  return $files;
+  my $xspt_files = $self->_find_file_by_type('xspt', 'lib');
+  $xspt_files->{$_} = $_ foreach map $self->localize_file_path($_),
+                                 glob("*.xspt");
+
+  $xspt_files->{$_} = $_ foreach keys %$files;
+  return $xspt_files;
 }
 
 
