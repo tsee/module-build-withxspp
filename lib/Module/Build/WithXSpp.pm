@@ -19,6 +19,8 @@ sub new {
   $guess->add_extra_linker_flags($args{extra_linker_flags})
     if defined $args{extra_linker_flags};
 
+  $guess->add_extra_compiler_flags('-Isrc') if -d 'src';
+
   # Construct object using C++ options guess
   my $self = $class->SUPER::new(
     %args,
@@ -36,33 +38,43 @@ sub _init {
 
 }
 
+sub ACTION_create_buildarea {
+  my $self = shift;
+  mkdir('buildtmp');
+  $self->add_to_cleanup("buildtmp");
+}
 
 sub ACTION_code {
   my $self = shift;
+  $self->depends_on('create_buildarea');
   $self->depends_on('generate_typemap');
   return $self->SUPER::ACTION_code(@_);
 }
 
 sub ACTION_generate_typemap {
   my $self = shift;
+  $self->depends_on('create_buildarea');
+
   $self->log_info("Processing XS typemap files...");
 
-  my $files = $self->find_map_files;
-  return if !keys %$files;
+  require ExtUtils::Typemap;
+  require File::Spec;
 
-  if (keys %$files and -f 'typemap') {
-    my $age = -M 'typemap';
-    return if !grep {warn $_;-M $_ < $age} keys %$files;
+  my $files = $self->find_map_files;
+
+  # merge all typemaps into 'buildtmp/typemap'
+  # creates empty typemap file if there are no files to merge
+  my $out_map_file = File::Spec->catfile('buildtmp', 'typemap');
+  if (keys %$files and -f $out_map_file) {
+    my $age = -M $out_map_file;
+    return if !grep {-M $_ < $age} keys %$files;
   }
 
-  # merge all typemaps into 'typemap'
-  require ExtUtils::Typemap;
   my $merged = ExtUtils::Typemap->new;
   foreach my $file (keys %$files) {
     $merged->merge(typemap => ExtUtils::Typemap->new(file => $file));
   }
-  $merged->write(file => 'typemap');
-  $self->add_to_cleanup('typemap');
+  $merged->write(file => $out_map_file);
 }
 
 sub find_map_files  {
@@ -70,8 +82,44 @@ sub find_map_files  {
   my $files = $self->_find_file_by_type('map', 'lib');
   $files->{$_} = $_ foreach map $self->localize_file_path($_),
                             glob("*.map");
+  $files->{'typemap'} = 'typemap' if -f 'typemap';
+
   return $files;
 }
+
+
+sub find_xsp_files  {
+  my $self = shift;
+  my $files = $self->_find_file_by_type('xsp', 'lib');
+  $files->{$_} = $_ foreach map $self->localize_file_path($_),
+                            glob("*.xsp");
+
+  require File::Basename;
+  # XS++ typemaps aren't XSP files in this regard
+  foreach my $file (keys %$files) {
+    delete $files->{$file}
+      if File::Basename::basename($file) =~ /^typemap.*\.xsp$/; 
+  }
+
+  return $files;
+}
+
+sub find_xsp_typemaps {
+  my $self = shift;
+  my $files = $self->_find_file_by_type('xsp', 'lib');
+  $files->{$_} = $_ foreach map $self->localize_file_path($_),
+                            glob("*.xsp");
+
+  require File::Basename;
+  # XS++ typemaps aren't XSP files in this regard
+  foreach my $file (keys %$files) {
+    delete $files->{$file}
+      if File::Basename::basename($file) !~ /^typemap.*\.xsp$/; 
+  }
+
+  return $files;
+}
+
 
 1;
 
@@ -111,13 +159,19 @@ should be aware of as an XS/XS++ module author:
 
 =head1 FEATURES AND CONVENTIONS
 
+=head2 Build directory
+
+When building your XS++ based extension, a temporary
+build directory F<buildtmp> is created for the byproducts.
+
 =head2 Typemaps
 
 You can put your XS typemaps into arbitray F<.map> files in the F<lib>
-directory. You may use multiple F<.map> files if the entries do not
-collide. They will be merged at build time into the F<typemap> file
-in the top directory. For this reason, you B<MUST NOT> put your
-typemaps into the top-level typemap file. They will be overwritten.
+directory, any F<.map> files in the main directory, or
+in the main directories F<typemap> file.
+You may use multiple F<.map> files if the entries do not
+collide. They will be merged at build time into a F<typemap> file
+in the temporary build directory.
 
 =head2 Detecting the C++ compiler
 
