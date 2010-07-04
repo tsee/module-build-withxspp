@@ -1,0 +1,16 @@
+_build
+blib
+Build
+Build.bat
+MANIFEST.bak
+META.yml
+MYMETA.yml
+t/makemaker
+t/module_build
+*.def
+*.pdb
+*.lib
+*.exp
+pod2htm?.tmp
+*.swp
+*.swo
