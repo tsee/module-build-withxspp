@@ -34,24 +34,31 @@ sub _init {
   my $self = shift;
   my $args = shift;
 
-  $self->add_build_element('map');
 }
 
-sub process_map_files {
+
+sub ACTION_code {
   my $self = shift;
+  $self->depends_on('generate_typemap');
+  return $self->SUPER::ACTION_code(@_);
+}
 
-  my @files = $self->find_map_files;
-  return if !@files;
+sub ACTION_generate_typemap {
+  my $self = shift;
+  $self->log_info("Processing XS typemap files...");
 
-  if (@files and -f 'typemap') {
+  my $files = $self->find_map_files;
+  return if !keys %$files;
+
+  if (keys %$files and -f 'typemap') {
     my $age = -M 'typemap';
-    return if !grep {-M $_ < $age} @files;
+    return if !grep {warn $_;-M $_ < $age} keys %$files;
   }
 
   # merge all typemaps into 'typemap'
   require ExtUtils::Typemap;
   my $merged = ExtUtils::Typemap->new;
-  foreach my $file (@files) {
+  foreach my $file (keys %$files) {
     $merged->merge(typemap => ExtUtils::Typemap->new(file => $file));
   }
   $merged->write(file => 'typemap');
@@ -59,9 +66,11 @@ sub process_map_files {
 }
 
 sub find_map_files  {
-  my @files = shift->_find_file_by_type('map', 'lib');
-  push @files, glob("*.map");
-  return @files;
+  my $self = shift;
+  my $files = $self->_find_file_by_type('map', 'lib');
+  $files->{$_} = $_ foreach map $self->localize_file_path($_),
+                            glob("*.map");
+  return $files;
 }
 
 1;
