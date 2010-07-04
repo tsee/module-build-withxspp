@@ -11,6 +11,7 @@ my $build = Module::Build->new(
     'ExtUtils::CBuilder' => '0',
     'Module::Build' => '0.26',
     'ExtUtils::Typemap' => '0',
+    'ExtUtils::ParseXS' => '2.2205',
   },
   build_requires => {
     'ExtUtils::CBuilder' => '0',
