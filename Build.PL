@@ -8,6 +8,11 @@ my $build = Module::Build->new(
   license        => 'perl',
   requires       => {
     'ExtUtils::XSpp' => '0.11',
+    'ExtUtils::CBuilder' => '0',
+    'Module::Build' => '0',
+  },
+  build_requires => {
+    'ExtUtils::CBuilder' => '0',
     'Module::Build' => '0',
   },
   configure_requires => {
