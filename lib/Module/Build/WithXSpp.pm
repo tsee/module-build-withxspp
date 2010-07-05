@@ -208,7 +208,7 @@ sub find_xs_files {
   my $xs_files = $self->SUPER::find_xs_files;
 
   my @extra_files = map glob($_),
-                    map File::Spec->catfile($_, '*.xsp'),
+                    map File::Spec->catfile($_, '*.xs'),
                     @{$self->extra_xs_dirs||[]};
 
   $xs_files->{$_} = $_ foreach map $self->localize_file_path($_),
@@ -216,7 +216,7 @@ sub find_xs_files {
 
   my $auto_gen_file = File::Spec->catfile($self->build_dir, 'main.xs');
   if (-e $auto_gen_file) {
-    $xs_files = {$auto_gen_file, $self->localize_file_path($auto_gen_file)};
+    $xs_files->{$auto_gen_file} =  $self->localize_file_path($auto_gen_file);
   }
   return $xs_files;
 }
