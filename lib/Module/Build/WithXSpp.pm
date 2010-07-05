@@ -148,8 +148,11 @@ sub ACTION_generate_typemap {
 sub find_map_files  {
   my $self = shift;
   my $files = $self->_find_file_by_type('map', 'lib');
+  my @extra_files = map glob($_),
+                    map File::Spec->catfile($_, '*.map'),
+                    @{$self->extra_xs_dirs||[]};
   $files->{$_} = $_ foreach map $self->localize_file_path($_),
-                            glob("*.map");
+                            @extra_files;
   $files->{'typemap'} = 'typemap' if -f 'typemap';
 
   return $files;
@@ -158,9 +161,13 @@ sub find_map_files  {
 
 sub find_xsp_files  {
   my $self = shift;
+
+  my @extra_files = map glob($_),
+                    map File::Spec->catfile($_, '*.xsp'),
+                    @{$self->extra_xs_dirs||[]};
   my $files = $self->_find_file_by_type('xsp', 'lib');
   $files->{$_} = $_ foreach map $self->localize_file_path($_),
-                            glob("*.xsp");
+                            @extra_files;
 
   require File::Basename;
   # XS++ typemaps aren't XSP files in this regard
@@ -174,22 +181,22 @@ sub find_xsp_files  {
 
 sub find_xsp_typemaps {
   my $self = shift;
-  my $files = $self->_find_file_by_type('xsp', 'lib');
-  $files->{$_} = $_ foreach map $self->localize_file_path($_),
-                            glob("*.xsp");
 
-  require File::Basename;
-  # XS++ typemaps aren't XSP files in this regard
-  foreach my $file (keys %$files) {
-    delete $files->{$file}
-      if File::Basename::basename($file) !~ /^typemap\.xsp$/;
+  my $xsp_files = $self->_find_file_by_type('xsp', 'lib');
+  my $xspt_files = $self->_find_file_by_type('xspt', 'lib');
+
+  foreach (keys %$xsp_files) { # merge over 'typemap.xsp's
+    next unless File::Basename::basename($_) eq 'typemap.xsp';
+    $xspt_files->{$_} = $_
   }
 
-  my $xspt_files = $self->_find_file_by_type('xspt', 'lib');
+  my @extra_files = map glob($_),
+                    grep defined $_ && /\S/ && -e $_,
+                    map { ( File::Spec->catfile($_, 'typemap.xsp'),
+                            File::Spec->catfile($_, '*.xspt') ) }
+                    @{$self->extra_xs_dirs||[]};
   $xspt_files->{$_} = $_ foreach map $self->localize_file_path($_),
-                                 glob("*.xspt");
-
-  $xspt_files->{$_} = $_ foreach keys %$files;
+                                 @extra_files;
   return $xspt_files;
 }
 
@@ -199,13 +206,18 @@ sub find_xsp_typemaps {
 sub find_xs_files {
   my $self = shift;
   my $xs_files = $self->SUPER::find_xs_files;
-  my @extra_globs = (
-    '*.xs',
-    File::Spec->catfile($self->build_dir(), '*.xs'),
-  );
+
+  my @extra_files = map glob($_),
+                    map File::Spec->catfile($_, '*.xsp'),
+                    @{$self->extra_xs_dirs||[]};
+
   $xs_files->{$_} = $_ foreach map $self->localize_file_path($_),
-                               map glob($_),
-                               @extra_globs;
+                               @extra_files;
+
+  my $auto_gen_file = File::Spec->catfile($self->build_dir, 'main.xs');
+  if (-e $auto_gen_file) {
+    $xs_files = {$auto_gen_file, $self->localize_file_path($auto_gen_file)};
+  }
   return $xs_files;
 }
 
@@ -290,6 +302,7 @@ sub _infer_xs_spec {
 
 __PACKAGE__->add_property( 'cpp_source_dirs' => ['src'] );
 __PACKAGE__->add_property( 'build_dir'       => 'buildtmp' );
+__PACKAGE__->add_property( 'extra_xs_dirs'   => [qw(. xs XS xsp XSP)] );
 
 1;
 
@@ -303,19 +316,19 @@ Module::Build::WithXSpp - XS++ enhanced flavour of Module::Build
 
 In F<Build.PL>:
 
-    use strict;
-    use warnings;
-    use 5.006001;
-    
-    use Module::Build::WithXSpp;
-    
-    my $build = Module::Build::WithXSpp->new(
-      configure_requires => {
-        'Module::Build::WithXSpp' => '0.01',
-      },
-      # normal Module::Build arguments...
-    );
-    $build->create_build_script;
+  use strict;
+  use warnings;
+  use 5.006001;
+  
+  use Module::Build::WithXSpp;
+  
+  my $build = Module::Build::WithXSpp->new(
+    configure_requires => {
+      'Module::Build::WithXSpp' => '0.01',
+    },
+    # normal Module::Build arguments...
+  );
+  $build->create_build_script;
 
 =head1 DESCRIPTION
 
