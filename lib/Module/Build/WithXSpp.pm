@@ -27,13 +27,13 @@ sub new {
   $guess->add_extra_linker_flags($args{extra_linker_flags})
     if defined $args{extra_linker_flags};
 
-  $guess->add_extra_compiler_flags('-Isrc') if -d 'src';
-
   # Construct object using C++ options guess
   my $self = $class->SUPER::new(
     %args,
     $guess->module_build_options # FIXME find a way to let the user override this
   );
+
+  push @{$self->extra_compiler_flags}, map "-I$_", @{$self->cpp_source_dirs||[]};
 
   $self->_init(\%args);
 
@@ -57,6 +57,27 @@ sub ACTION_code {
   $self->depends_on('create_buildarea');
   $self->depends_on('generate_typemap');
   $self->depends_on('generate_main_xs');
+
+  my $files = {};
+  foreach my $ext (qw(c cc cxx cpp C)) {
+    foreach my $dir (@{$self->cpp_source_dirs||[]}) {
+      my $this = $self->_find_file_by_type($ext, $dir);
+      $files = $self->_merge_hashes($files, $this);
+    }
+  }
+
+  my @objects;
+  foreach my $file (keys %$files) {
+    warn $file;
+    my $obj = $self->compile_c($file);
+    warn $obj;
+    push @objects, $obj;
+    $self->add_to_cleanup($obj);
+  }
+
+  $self->{properties}{objects} ||= [];
+  push @{$self->{properties}{objects}}, @objects;
+
   return $self->SUPER::ACTION_code(@_);
 }
 
@@ -303,6 +324,16 @@ sub _infer_xs_spec {
 __PACKAGE__->add_property( 'cpp_source_dirs' => ['src'] );
 __PACKAGE__->add_property( 'build_dir'       => 'buildtmp' );
 __PACKAGE__->add_property( 'extra_xs_dirs'   => [qw(. xs XS xsp XSP)] );
+
+
+sub _merge_hashes {
+  my $self = shift;
+  my %h;
+  foreach my $m (@_) {
+    $h{$_} = $m->{$_} foreach keys %$m;
+  }
+  return \%h;
+}
 
 1;
 
