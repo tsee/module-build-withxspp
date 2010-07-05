@@ -102,10 +102,11 @@ MODULE = $module_name	PACKAGE = $module_name
 HERE
 
   my $typemap_args = '';
-  $typemap_args .= '-t ' . $_ . ' ' foreach keys %$xspt_files;
+  $typemap_args .= '-t ' . Cwd::abs_path($_) . ' ' foreach keys %$xspt_files;
 
   foreach my $xsp_file (keys %$xsp_files) {
-    my $cmd = "INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $xsp_file\n\n";
+    my $full_path_file = Cwd::abs_path($xsp_file);
+    my $cmd = "INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $full_path_file\n\n";
     $xs_code .= $cmd;
   }
 
@@ -216,14 +217,17 @@ sub compile_xs {
   $self->log_verbose("$file -> $args{outfile}\n");
 
   require ExtUtils::ParseXS;
+
+  my $main_dir = Cwd::abs_path( Cwd::cwd() );
+  my $build_dir = Cwd::abs_path( $self->build_dir );
   ExtUtils::ParseXS::process_file(
     filename   => $file,
     prototypes => 0,
     output     => $args{outfile},
     # not default:
-    #'C++' => 1,
-    #hiertype => 1,
-    typemap    => File::Spec->catfile($self->build_dir, 'typemap'),
+    'C++' => 1,
+    hiertype => 1,
+    typemap    => File::Spec->catfile($build_dir, 'typemap'),
   );
 
 }
@@ -253,6 +257,7 @@ sub _infer_xs_spec {
     my $name = $self->module_name;
     @d = split /::/, $name;
     $file_base = $d[-1];
+    pop @d if @d;
   }
   else {
     # the module name
