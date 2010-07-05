@@ -10,9 +10,7 @@ our $VERSION = '0.01'; # update in SYNOPSIS, too!
 # TODO
 # - configurable set of xsp and xspt files (and XS typemaps?)
 # - configurable includes/C-preamble for the XS?
-# - src/ C++ source folder by default
-# - configurable C++ source folder(s)
-# - build/link C++ by default
+# - configurable C++ source folder(s) (works, needs docs)
 # - regenerate main.xs only if neccessary
 
 sub new {
