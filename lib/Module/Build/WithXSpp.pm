@@ -337,8 +337,8 @@ processes to make it easier to use for wrapping C++
 using XS++ (L<ExtUtils::XSpp>).
 
 There are a few minor differences from using C<Module::Build>
-for an ordinary XS module and a fewconventions that you
-should be aware of as an XS/XS++ module author:
+for an ordinary XS module and a few conventions that you
+should be aware of as an XS++ module author:
 
 =head1 FEATURES AND CONVENTIONS
 
@@ -346,16 +346,39 @@ should be aware of as an XS/XS++ module author:
 
 When building your XS++ based extension, a temporary
 build directory F<buildtmp> is created for the byproducts.
-It is cleaned up by C<./Build clean>.
+It is automatically cleaned up by C<./Build clean>.
+
+=head2 Source directories
+
+A Perl module distribution typically has the module C<.pm> files
+in its F<lib> subdirectory. In a C<Module::Build::WithXSpp> based
+distribution, there are two more such conventions about source
+directories:
+
+If any C++ source files are present in the F<src> directory, they
+will be compiled to object files and linked automatically.
+
+Any C<.xs>, C<.xsp>, and C<.xspt> files in an F<xs> or F<xsp>
+subdirectory will be automatically picked up and included
+by the build system.
+
+For backwards compatibility, files of the above types are also
+recognized in F<lib>.
 
 =head2 Typemaps
 
-You can put your XS typemaps into arbitray F<.map> files in the F<lib>
-directory, any F<.map> files in the main directory, or
-in the main directories F<typemap> file.
+In XS++, there are two types of typemaps: The ordinary XS typemaps
+which conventionally put in a file called F<typemap>, and XS++ typemaps.
+
+The ordinary XS typemaps will be found in the main directory,
+under F<lib>, and in the XS directories (F<xs> and F<xsp>). They are
+required to carry the C<.map> extension or to be called F<typemap>.
 You may use multiple F<.map> files if the entries do not
-collide. They will be merged at build time into a F<typemap> file
+collide. They will be merged at build time into a complete F<typemap> file
 in the temporary build directory.
+
+The XS++ typemaps are required to carry the C<.xspt> extension or (for
+backwards compatibility) to be called C<typemap.xsp>.
 
 =head2 Detecting the C++ compiler
 
