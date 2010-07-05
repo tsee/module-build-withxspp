@@ -391,6 +391,13 @@ This is known to work on GCC (Linux, MacOS, Windows, and ?) as well
 as the MS VC toolchain. Patches to enable other compilers are
 B<very> welcome.
 
+=head1 SEE ALSO
+
+L<Module::Build> upon which this module is based.
+
+L<ExtUtils::XSpp> implements XS++. The C<ExtUtils::XSpp> distribution
+contains an F<examples> directory with a usage example of this module.
+
 =head1 AUTHOR
 
 Steffen Mueller <smueller@cpan.org>
