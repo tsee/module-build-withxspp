@@ -342,6 +342,39 @@ should be aware of as an XS++ module author:
 
 =head1 FEATURES AND CONVENTIONS
 
+=head2 XS files
+
+By default, C<Module::Build::WithXSpp> will automatically
+generate a main XS file for your module which includes
+all XS++ files and does the correct incantations to support
+C++.
+
+If C<Module::Build::WithXSpp> detects any XS files in your
+module, it will skip the generation of this default file
+and assume that you wrote a custom main XS file. If
+that is not what you want, and wish to simply include
+plain XS code, then you should put the XS in a verbatim
+block of an F<.xsp> file. In case you need to use the plain-C
+part of an XS file for C<#include> directives and other code,
+then put your code into a header file and C<#include> it
+from an F<.xsp> file:
+
+In F<src/mystuff.h>:
+
+  #include <something>
+  using namespace some::thing;
+
+In F<xsp/MyClass.xsp>
+
+  #include "mystuff.h"
+  
+  %{
+    ... verbatim XS here ...
+  %}
+
+Note that there is no guarantee about the order in which the
+XS++ files are picked up.
+
 =head2 Build directory
 
 When building your XS++ based extension, a temporary
