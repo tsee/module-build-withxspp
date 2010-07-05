@@ -66,9 +66,7 @@ sub ACTION_code {
 
   my @objects;
   foreach my $file (keys %$files) {
-    warn $file;
     my $obj = $self->compile_c($file);
-    warn $obj;
     push @objects, $obj;
     $self->add_to_cleanup($obj);
   }
