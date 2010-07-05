@@ -13,7 +13,6 @@ our $VERSION = '0.01'; # update in SYNOPSIS, too!
 # - src/ C++ source folder by default
 # - configurable C++ source folder(s)
 # - build/link C++ by default
-# - make sure our merged typemap is used
 # - regenerate main.xs only if neccessary
 
 sub new {
@@ -207,6 +206,26 @@ sub find_xs_files {
                                map glob($_),
                                @extra_globs;
   return $xs_files;
+}
+
+
+# overridden from original. We really require
+# EU::ParseXS, so the "if (eval{require EU::PXS})" is gone.
+sub compile_xs {
+  my ($self, $file, %args) = @_;
+  $self->log_verbose("$file -> $args{outfile}\n");
+
+  require ExtUtils::ParseXS;
+  ExtUtils::ParseXS::process_file(
+    filename   => $file,
+    prototypes => 0,
+    output     => $args{outfile},
+    # not default:
+    #'C++' => 1,
+    #hiertype => 1,
+    typemap    => File::Spec->catfile($self->build_dir, 'typemap'),
+  );
+
 }
 
 # modified from orinal M::B (FIXME: shouldn't do this with private methods)
