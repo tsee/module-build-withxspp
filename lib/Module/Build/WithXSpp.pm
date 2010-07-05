@@ -209,6 +209,61 @@ sub find_xs_files {
   return $xs_files;
 }
 
+# modified from orinal M::B (FIXME: shouldn't do this with private methods)
+# Changes from the original:
+# - If we're looking at the "main.xs" file in the build
+#   directory, override the TARGET paths with the real
+#   module name.
+# - In that case, also override the file basename for further
+#   build products (maybe this should only be done on installation
+#   into blib/.../?)
+sub _infer_xs_spec {
+  my $self = shift;
+  my $file = shift;
+
+  my $cf = $self->{config};
+
+  my %spec;
+
+  my( $v, $d, $f ) = File::Spec->splitpath( $file );
+  my @d = File::Spec->splitdir( $d );
+  (my $file_base = $f) =~ s/\.[^.]+$//i;
+
+  my $build_folder = $self->build_dir;
+  if ($d =~ /\Q$build_folder\E/ && $file_base eq 'main') {
+    my $name = $self->module_name;
+    @d = split /::/, $name;
+    $file_base = $d[-1];
+  }
+  else {
+    # the module name
+    shift( @d ) while @d && ($d[0] eq 'lib' || $d[0] eq '');
+    pop( @d ) while @d && $d[-1] eq '';
+  }
+
+  $spec{base_name} = $file_base;
+
+  $spec{src_dir} = File::Spec->catpath( $v, $d, '' );
+
+  $spec{module_name} = join( '::', (@d, $file_base) );
+
+  $spec{archdir} = File::Spec->catdir($self->blib, 'arch', 'auto',
+				      @d, $file_base);
+
+  $spec{bs_file} = File::Spec->catfile($spec{archdir}, "${file_base}.bs");
+
+  $spec{lib_file} = File::Spec->catfile($spec{archdir},
+					"${file_base}.".$cf->get('dlext'));
+
+  $spec{c_file} = File::Spec->catfile( $spec{src_dir},
+				       "${file_base}.c" );
+
+  $spec{obj_file} = File::Spec->catfile( $spec{src_dir},
+					 "${file_base}".$cf->get('obj_ext') );
+
+  return \%spec;
+}
+
 __PACKAGE__->add_property( 'cpp_source_dirs' => ['src'] );
 __PACKAGE__->add_property( 'build_dir'       => 'buildtmp' );
 
