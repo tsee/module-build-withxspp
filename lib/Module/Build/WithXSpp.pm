@@ -7,6 +7,15 @@ use ExtUtils::CppGuess ();
 our @ISA = qw(Module::Build);
 our $VERSION = '0.01'; # update in SYNOPSIS, too!
 
+# TODO
+# - configurable set of xsp and xspt files (and XS typemaps?)
+# - configurable includes/C-preamble for the XS?
+# - src/ C++ source folder by default
+# - configurable C++ source folder(s)
+# - build/link C++ by default
+# - make sure our merged typemap is used
+# - regenerate main.xs only if neccessary
+
 sub new {
   my $proto = shift;
   my $class = ref($proto) || $proto;
@@ -40,8 +49,8 @@ sub _init {
 
 sub ACTION_create_buildarea {
   my $self = shift;
-  mkdir('buildtmp');
-  $self->add_to_cleanup("buildtmp");
+  mkdir($self->build_dir);
+  $self->add_to_cleanup($self->build_dir);
 }
 
 sub ACTION_code {
@@ -56,10 +65,12 @@ sub ACTION_generate_main_xs {
   my $self = shift;
 
   my $xs_files = $self->find_xs_files;
-  $xs_files->{$_} = $_ foreach map $self->localize_file_path($_),
-                               glob("*.xs");
 
-  if (keys %$xs_files) { # user knows what she's doing
+  if (keys(%$xs_files) > 1
+      or keys(%$xs_files) == 1
+      && (values(%$xs_files))[0] =~ /\bmain\.xs$/) # FIXME better detection of auto-gen main.XS
+  {
+    # user knows what she's doing, do not generate XS
     $self->log_info("Found custom XS files. Not auto-generating main XS file...\n");
     return 1;
   }
@@ -99,7 +110,7 @@ HERE
     $xs_code .= $cmd;
   }
 
-  my $outfile = File::Spec->catdir('buildtmp', 'main.xs');
+  my $outfile = File::Spec->catdir($self->build_dir, 'main.xs');
   open my $fh, '>', $outfile
     or die "Could not open '$outfile' for writing: $!";
   print $fh $xs_code;
@@ -121,7 +132,7 @@ sub ACTION_generate_typemap {
 
   # merge all typemaps into 'buildtmp/typemap'
   # creates empty typemap file if there are no files to merge
-  my $out_map_file = File::Spec->catfile('buildtmp', 'typemap');
+  my $out_map_file = File::Spec->catfile($self->build_dir, 'typemap');
   if (keys %$files and -f $out_map_file) {
     my $age = -M $out_map_file;
     return if !grep {-M $_ < $age} keys %$files;
@@ -183,6 +194,24 @@ sub find_xsp_typemaps {
 }
 
 
+# This overrides the equivalent in the base class to add the buildtmp and
+# the main directory
+sub find_xs_files {
+  my $self = shift;
+  my $xs_files = $self->SUPER::find_xs_files;
+  my @extra_globs = (
+    '*.xs',
+    File::Spec->catfile($self->build_dir(), '*.xs'),
+  );
+  $xs_files->{$_} = $_ foreach map $self->localize_file_path($_),
+                               map glob($_),
+                               @extra_globs;
+  return $xs_files;
+}
+
+__PACKAGE__->add_property( 'cpp_source_dirs' => ['src'] );
+__PACKAGE__->add_property( 'build_dir'       => 'buildtmp' );
+
 1;
 
 __END__
@@ -225,6 +254,7 @@ should be aware of as an XS/XS++ module author:
 
 When building your XS++ based extension, a temporary
 build directory F<buildtmp> is created for the byproducts.
+It is cleaned up by C<./Build clean>.
 
 =head2 Typemaps
 
