@@ -365,7 +365,14 @@ using XS++ (L<ExtUtils::XSpp>).
 
 There are a few minor differences from using C<Module::Build>
 for an ordinary XS module and a few conventions that you
-should be aware of as an XS++ module author:
+should be aware of as an XS++ module author. They are documented
+in the L<"/FEATURES AND CONVENTIONS"> section below.
+
+An example of a full distribution based on this build tool
+can be found in the L<ExtUtils::XSpp> distribution under
+F<examples/XSpp-Example>. Using that example as the basis
+for your C<Module::Build::WithXSpp>-based distribution
+is probably a good idea.
 
 =head1 FEATURES AND CONVENTIONS
 
