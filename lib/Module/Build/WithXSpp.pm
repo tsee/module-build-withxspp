@@ -9,8 +9,13 @@ our $VERSION = '0.01'; # update in SYNOPSIS, too!
 
 # TODO
 # - configurable set of xsp and xspt files (and XS typemaps?)
+#   => works via directories for now.
 # - configurable includes/C-preamble for the XS?
+#   => Works in the .xsp files, but the order of XS++ inclusion
+#      is undefined.
 # - configurable C++ source folder(s) (works, needs docs)
+#   => to be documented another time. This is really not a feature that
+#      should be commonly used.
 # - regenerate main.xs only if neccessary
 
 sub new {
