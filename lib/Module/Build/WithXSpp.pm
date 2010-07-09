@@ -367,9 +367,6 @@ In F<Build.PL>:
   use Module::Build::WithXSpp;
   
   my $build = Module::Build::WithXSpp->new(
-    configure_requires => {
-      'Module::Build::WithXSpp' => '0.01',
-    },
     # normal Module::Build arguments...
   );
   $build->create_build_script;
@@ -383,7 +380,9 @@ using XS++ (L<ExtUtils::XSpp>).
 There are a few minor differences from using C<Module::Build>
 for an ordinary XS module and a few conventions that you
 should be aware of as an XS++ module author. They are documented
-in the L<"/FEATURES AND CONVENTIONS"> section below.
+in the L<"/FEATURES AND CONVENTIONS"> section below. But if you
+can't be bothered to read all that, you may choose skip it and
+blindly follow the advice in L<"/JUMP START FOR THE IMPATIENT">.
 
 An example of a full distribution based on this build tool
 can be found in the L<ExtUtils::XSpp> distribution under
@@ -474,6 +473,74 @@ additional compiler/linker options.
 This is known to work on GCC (Linux, MacOS, Windows, and ?) as well
 as the MS VC toolchain. Patches to enable other compilers are
 B<very> welcome.
+
+=head1 JUMP START FOR THE IMPATIENT
+
+There are as many ways to start a new CPAN distribution as there
+are CPAN distributions. Choose your favourite, then apply a few
+changes to your setup.
+
+=over 2
+
+=item *
+
+This is what your F<Build.PL> should look like:
+
+  use strict;
+  use warnings;
+  use 5.006001;
+  use Module::Build::WithXSpp;
+  
+  my $build = Module::Build::WithXSpp->new(
+    module_name         => 'My::Module',
+    license             => 'perl',
+    dist_author         => q{John Doe <john_does_mail_address>},
+    dist_version_from   => 'lib/My/Module.pm',
+    build_requires => { 'Test::More' => 0, },
+  );
+  $build->create_build_script;
+
+If you need to link against some library C<libfoo>, add this to
+the options:
+
+    extra_linker_flags => [qw(-lfoo)],
+
+There is C<extra_compiler_flags>, too, if you need it.
+
+=item *
+
+You create two folders in the main distribution folder:
+F<src> and F<xsp>.
+
+=item *
+
+You put any C++ code that you want to build and include
+in the module into F<src/>. All the typical C(++) file
+extensions are recognized and will be compiled to object files
+and linked into the module. And headers in that folder will
+be accessible for C<#include E<lt>myheader.hE<gt>>.
+
+=item *
+
+You do not write normal XS files. Instead, you write XS++ and
+put it into the F<xsp/> folder in files with the C<.xsp>
+extension. Do not worry, you can include verbatim XS blocks
+in XS++. For details on XS++, see L<ExtUtils::XSpp>.
+
+=item *
+
+If you need to do any XS type mapping, put your typemaps
+into a F<.map> file in the C<xsp> directory. XS++ typemaps
+belong into F<.xspt> files in the same directory.
+
+=item *
+
+In this scheme, F<lib/> only contains Perl module files (and POD).
+If you started from a pure-Perl distribution, don't forget to add
+these magic two lines to your main module:
+
+  require XSLoader;
+  XSLoader::load('My::Module', $VERSION);
 
 =head1 SEE ALSO
 
