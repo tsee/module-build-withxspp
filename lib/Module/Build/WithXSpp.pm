@@ -44,6 +44,23 @@ sub _init {
 
 }
 
+sub auto_require {
+  my ($self) = @_;
+  my $p = $self->{properties};
+
+  if ( $self->dist_name ne 'Module-Build-WithXSpp'
+    && $self->auto_configure_requires
+    && ! exists $p->{configure_requires}{'Module::Build::WithXSpp'}
+  ) {
+    (my $ver = $VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
+    $self->_add_prereq('configure_requires', 'Module::Build::WithXSpp', $ver);
+  }
+
+  $self->SUPER::auto_require();
+
+  return;
+}
+
 sub ACTION_create_buildarea {
   my $self = shift;
   mkdir($self->build_dir);
