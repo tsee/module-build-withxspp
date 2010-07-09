@@ -380,9 +380,9 @@ using XS++ (L<ExtUtils::XSpp>).
 There are a few minor differences from using C<Module::Build>
 for an ordinary XS module and a few conventions that you
 should be aware of as an XS++ module author. They are documented
-in the L<"/FEATURES AND CONVENTIONS"> section below. But if you
+in the L</"FEATURES AND CONVENTIONS"> section below. But if you
 can't be bothered to read all that, you may choose skip it and
-blindly follow the advice in L<"/JUMP START FOR THE IMPATIENT">.
+blindly follow the advice in L</"JUMP START FOR THE IMPATIENT">.
 
 An example of a full distribution based on this build tool
 can be found in the L<ExtUtils::XSpp> distribution under
@@ -477,12 +477,15 @@ B<very> welcome.
 =head1 JUMP START FOR THE IMPATIENT
 
 There are as many ways to start a new CPAN distribution as there
-are CPAN distributions. Choose your favourite, then apply a few
-changes to your setup.
+are CPAN distributions. Choose your favourite
+(I just do C<h2xs -An My::Module>), then apply a few
+changes to your setup:
 
 =over 2
 
 =item *
+
+Obliterate any F<Makefile.PL>.
 
 This is what your F<Build.PL> should look like:
 
@@ -519,6 +522,9 @@ in the module into F<src/>. All the typical C(++) file
 extensions are recognized and will be compiled to object files
 and linked into the module. And headers in that folder will
 be accessible for C<#include E<lt>myheader.hE<gt>>.
+
+For good measure, move a copy of F<ppport.h> to that directory.
+See L<Devel::PPPort>.
 
 =item *
 
