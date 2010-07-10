@@ -5,7 +5,7 @@ use warnings;
 use Module::Build;
 use ExtUtils::CppGuess ();
 our @ISA = qw(Module::Build);
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 # TODO
 # - configurable set of xsp and xspt files (and XS typemaps?)
