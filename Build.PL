@@ -12,7 +12,7 @@ my $build = Module::Build->new(
     'Module::Build' => '0.26',
     'ExtUtils::Typemap' => '0',
     'ExtUtils::ParseXS' => '2.2205',
-    'ExtUtils::CppGuess' => '0',
+    'ExtUtils::CppGuess' => '0.04',
   },
   build_requires => {
     'ExtUtils::CBuilder' => '0',
