@@ -239,7 +239,7 @@ sub find_map_files  {
   my $files = $self->_find_file_by_type('map', 'lib');
   my @extra_files = map glob($_),
                     map File::Spec->catfile($_, '*.map'),
-                    (@{$self->extra_xs_dirs||[]}, $self->build_dir);
+                    (@{$self->extra_xs_dirs||[]});
 
   $files->{$_} = $_ foreach map $self->localize_file_path($_),
                             @extra_files;
@@ -254,7 +254,7 @@ sub find_xsp_files  {
 
   my @extra_files = map glob($_),
                     map File::Spec->catfile($_, '*.xsp'),
-                    (@{$self->extra_xs_dirs||[]}, $self->build_dir);
+                    (@{$self->extra_xs_dirs||[]});
 
   my $files = $self->_find_file_by_type('xsp', 'lib');
   $files->{$_} = $_ foreach map $self->localize_file_path($_),
