@@ -73,6 +73,8 @@ sub auto_require {
   ) {
     (my $ver = $VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
     $self->_add_prereq('configure_requires', 'Module::Build::WithXSpp', $ver);
+    ($ver = $ExtUtils::CppGuess::VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
+    $self->_add_prereq('configure_requires', 'ExtUtils::CppGuess', $ver);
   }
 
   $self->SUPER::auto_require();
