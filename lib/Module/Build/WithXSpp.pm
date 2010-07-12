@@ -30,6 +30,20 @@ sub new {
   $guess->add_extra_linker_flags($args{extra_linker_flags})
     if defined $args{extra_linker_flags};
 
+  # add the typemap modules to the build dependencies
+  my $build_requires = $args{build_requires}||{};
+  my $extra_typemap_modules = $args{extra_typemap_modules}||{};
+  # FIXME: This prevents any potential subclasses from fudging with the extra typemaps?
+  foreach my $module (keys %$extra_typemap_modules) {
+    if (not defined $build_requires->{$module}
+        or defined($extra_typemap_modules->{$module})
+           && $build_requires->{$module} < $extra_typemap_modules->{$module})
+    {
+      $build_requires->{$module} = $extra_typemap_modules->{$module};
+    }
+  }
+  $args{build_requires} = $build_requires;
+
   # Construct object using C++ options guess
   my $self = $class->SUPER::new(
     %args,
@@ -167,6 +181,21 @@ sub ACTION_generate_typemap {
   require ExtUtils::Typemap;
   require File::Spec;
 
+  my $extra_modules = $self->extra_typemap_modules||{};
+
+  foreach my $module (keys %$extra_modules) {
+    my $str = $extra_modules->{$module}
+              ? "$module $extra_modules->{$module}"
+              : $module;
+    if (not eval "use $str;1;") {
+      $self->log_warn(<<HERE);
+ERROR: Required typmap module '$module' version $extra_modules->{$module} not found.
+Error message:
+$@
+HERE
+    }
+  }
+
   my $files = $self->find_map_files;
 
   # merge all typemaps into 'buildtmp/typemap'
@@ -178,6 +207,8 @@ sub ACTION_generate_typemap {
   }
 
   my $merged = ExtUtils::Typemap->new;
+  $merged->merge(typemap => $_->new) for keys %$extra_modules;
+
   foreach my $file (keys %$files) {
     $merged->merge(typemap => ExtUtils::Typemap->new(file => $file));
   }
@@ -339,9 +370,10 @@ sub _infer_xs_spec {
   return \%spec;
 }
 
-__PACKAGE__->add_property( 'cpp_source_dirs' => ['src'] );
-__PACKAGE__->add_property( 'build_dir'       => 'buildtmp' );
-__PACKAGE__->add_property( 'extra_xs_dirs'   => [qw(. xs XS xsp XSP)] );
+__PACKAGE__->add_property( 'cpp_source_dirs'       => ['src'] );
+__PACKAGE__->add_property( 'build_dir'             => 'buildtmp' );
+__PACKAGE__->add_property( 'extra_xs_dirs'         => [qw(. xs XS xsp XSP)] );
+__PACKAGE__->add_property( 'extra_typemap_modules' => {} );
 
 
 sub _merge_hashes {
@@ -373,6 +405,10 @@ In F<Build.PL>:
   
   my $build = Module::Build::WithXSpp->new(
     # normal Module::Build arguments...
+    # optional: mix in some extra C typemaps:
+    extra_typemap_modules => {
+      'ExtUtils::Typemap::ObjectMap' => '0',
+    },
   );
   $build->create_build_script;
 
@@ -465,6 +501,11 @@ You may use multiple F<.map> files if the entries do not
 collide. They will be merged at build time into a complete F<typemap> file
 in the temporary build directory.
 
+The C<extra_typemap_modules> option is the prefered way to do XS typemapping.
+It works like any other C<Module::Build> argument that declares dependencies
+except that it loads the listed modules at build time and includes their
+typemaps into the build.
+
 The XS++ typemaps are required to carry the C<.xspt> extension or (for
 backwards compatibility) to be called C<typemap.xsp>.
 
@@ -505,6 +546,10 @@ This is what your F<Build.PL> should look like:
     dist_author         => q{John Doe <john_does_mail_address>},
     dist_version_from   => 'lib/My/Module.pm',
     build_requires => { 'Test::More' => 0, },
+    extra_typemap_modules => {
+      'ExtUtils::Typemap::ObjectMap' => '0',
+      # ...
+    },
   );
   $build->create_build_script;
 
@@ -541,8 +586,10 @@ in XS++. For details on XS++, see L<ExtUtils::XSpp>.
 =item *
 
 If you need to do any XS type mapping, put your typemaps
-into a F<.map> file in the C<xsp> directory. XS++ typemaps
-belong into F<.xspt> files in the same directory.
+into a F<.map> file in the C<xsp> directory. Alternatively,
+search CPAN for an appropriate typemap module (cf.
+L<ExtUtils::Typemap::Default> for an explanation).
+XS++ typemaps belong into F<.xspt> files in the same directory.
 
 =item *
 
@@ -559,6 +606,18 @@ L<Module::Build> upon which this module is based.
 
 L<ExtUtils::XSpp> implements XS++. The C<ExtUtils::XSpp> distribution
 contains an F<examples> directory with a usage example of this module.
+
+L<ExtUtils::Typemap> implements progammatic modification (merging)
+of C/XS typemaps.
+
+L<ExtUtils::Typemap::Default> explains the concept of having typemaps
+shipped as modules.
+
+L<ExtUtils::Typemap::ObjectMap> is such a typemap module and
+probably very useful for any XS++ module.
+
+L<ExtUtils::Typemap::STL::String> implements simple typemapping for
+STL C<std::string>s.
 
 =head1 AUTHOR
 
