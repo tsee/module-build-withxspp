@@ -1,5 +1,11 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+0.04   Mon Jul 12 20:00:00 CEST 2010
+  - Requires ExtUtils::CppGuess 0.04
+  - Fix extra-{compiler,linker}-flags handling
+  - Build dir now searched for headers, XS, and XS++
+  - Auto-adds configuration-time dependency on EU::CppGuess
+
 0.03   Sun Jul 11 10:00:00 CEST 2010
   - Add support for typemap modules
 
