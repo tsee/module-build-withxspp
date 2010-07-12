@@ -1,5 +1,8 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+0.03   Sun Jul 11 10:00:00 CEST 2010
+  - Add support for typemap modules
+
 0.02   Sat Jul 10 10:00:00 CEST 2010
   - Add missing dependency on ExtUtils::CppGuess.
 
