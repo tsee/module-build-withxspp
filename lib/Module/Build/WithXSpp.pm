@@ -50,7 +50,9 @@ sub new {
     $guess->module_build_options # FIXME find a way to let the user override this
   );
 
-  push @{$self->extra_compiler_flags}, map "-I$_", @{$self->cpp_source_dirs||[]};
+  push @{$self->extra_compiler_flags},
+    map "-I$_",
+    (@{$self->cpp_source_dirs||[]}, $self->build_dir);
 
   $self->_init(\%args);
 
@@ -222,7 +224,8 @@ sub find_map_files  {
   my $files = $self->_find_file_by_type('map', 'lib');
   my @extra_files = map glob($_),
                     map File::Spec->catfile($_, '*.map'),
-                    @{$self->extra_xs_dirs||[]};
+                    (@{$self->extra_xs_dirs||[]}, $self->build_dir);
+
   $files->{$_} = $_ foreach map $self->localize_file_path($_),
                             @extra_files;
   $files->{'typemap'} = 'typemap' if -f 'typemap';
@@ -236,7 +239,8 @@ sub find_xsp_files  {
 
   my @extra_files = map glob($_),
                     map File::Spec->catfile($_, '*.xsp'),
-                    @{$self->extra_xs_dirs||[]};
+                    (@{$self->extra_xs_dirs||[]}, $self->build_dir);
+
   my $files = $self->_find_file_by_type('xsp', 'lib');
   $files->{$_} = $_ foreach map $self->localize_file_path($_),
                             @extra_files;
