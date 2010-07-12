@@ -25,10 +25,25 @@ sub new {
 
   # This gives us the correct settings for the C++ compile (hopefully)
   my $guess = ExtUtils::CppGuess->new();
-  $guess->add_extra_compiler_flags($args{extra_compiler_flags})
-    if defined $args{extra_compiler_flags};
-  $guess->add_extra_linker_flags($args{extra_linker_flags})
-    if defined $args{extra_linker_flags};
+  if (defined $args{extra_compiler_flags}) {
+    if (ref($args{extra_compiler_flags})) {
+      $guess->add_extra_compiler_flags($_) for @{$args{extra_compiler_flags}};
+    }
+    else {
+      $guess->add_extra_compiler_flags($args{extra_compiler_flags})
+    }
+    delete $args{extra_compiler_flags};
+  }
+
+  if (defined $args{extra_linker_flags}) {
+    if (ref($args{extra_linker_flags})) {
+      $guess->add_extra_linker_flags($_) for @{$args{extra_linker_flags}};
+    }
+    else {
+      $guess->add_extra_linker_flags($args{extra_linker_flags})
+    }
+    delete $args{extra_linker_flags};
+  }
 
   # add the typemap modules to the build dependencies
   my $build_requires = $args{build_requires}||{};
