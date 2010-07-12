@@ -191,7 +191,7 @@ sub ACTION_generate_typemap {
               : $module;
     if (not eval "use $str;1;") {
       $self->log_warn(<<HERE);
-ERROR: Required typmap module '$module' version $extra_modules->{$module} not found.
+ERROR: Required typemap module '$module' version $extra_modules->{$module} not found.
 Error message:
 $@
 HERE
