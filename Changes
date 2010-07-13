@@ -1,5 +1,8 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+0.06   Tue Jul 13 20:00:01 CEST 2010
+  - Automatic build-time dependency on EU::XSpp
+
 0.05   Mon Jul 12 20:00:01 CEST 2010
   - Build dir now searched for headers. XS and XS++ have no
     business there.

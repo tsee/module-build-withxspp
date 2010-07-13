@@ -111,6 +111,18 @@ FEATURES AND CONVENTIONS
     This is known to work on GCC (Linux, MacOS, Windows, and ?) as well as
     the MS VC toolchain. Patches to enable other compilers are very welcome.
 
+  Automatic dependencies
+    "Module::Build::WithXSpp" automatically adds several dependencies (on
+    the currently running versions) to your distribution. You can disable
+    this by setting "auto_configure_requires => 0" in Build.PL.
+
+    These are at configure time: "Module::Build", "Module::Build::WithXSpp"
+    itself, and "ExtUtils::CppGuess". Additionally there will be a
+    build-time dependency on "ExtUtils::XSpp".
+
+    You do not have to set these dependencies yourself unless you need to
+    set the required versions manually.
+
 JUMP START FOR THE IMPATIENT
     There are as many ways to start a new CPAN distribution as there are
     CPAN distributions. Choose your favourite (I just do "h2xs -An
@@ -204,6 +216,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 603:
+    Around line 682:
         You forgot a '=back' before '=head1'
 
