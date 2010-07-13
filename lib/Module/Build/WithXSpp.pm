@@ -84,7 +84,7 @@ sub auto_require {
   my $p = $self->{properties};
 
   if ($self->dist_name ne 'Module-Build-WithXSpp'
-      && $self->auto_configure_requires)
+      and $self->auto_configure_requires)
   {
     if (not exists $p->{configure_requires}{'Module::Build::WithXSpp'}) {
       (my $ver = $VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
@@ -95,7 +95,9 @@ sub auto_require {
       $self->_add_prereq('configure_requires', 'ExtUtils::CppGuess', $ver);
     }
     if (not exists $p->{build_requires}{'ExtUtils::CppGuess'}
-        && eval("require ExtUtils::XSpp; 1;")) {
+        and eval("require ExtUtils::XSpp;")
+        and defined $ExtUtils::XSpp::VERSION)
+    {
       (my $ver = $ExtUtils::XSpp::VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
       $self->_add_prereq('build_requires', 'ExtUtils::XSpp', $ver);
     }
