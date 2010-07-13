@@ -83,14 +83,22 @@ sub auto_require {
   my ($self) = @_;
   my $p = $self->{properties};
 
-  if ( $self->dist_name ne 'Module-Build-WithXSpp'
-    && $self->auto_configure_requires
-    && ! exists $p->{configure_requires}{'Module::Build::WithXSpp'}
-  ) {
-    (my $ver = $VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
-    $self->_add_prereq('configure_requires', 'Module::Build::WithXSpp', $ver);
-    ($ver = $ExtUtils::CppGuess::VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
-    $self->_add_prereq('configure_requires', 'ExtUtils::CppGuess', $ver);
+  if ($self->dist_name ne 'Module-Build-WithXSpp'
+      && $self->auto_configure_requires)
+  {
+    if (not exists $p->{configure_requires}{'Module::Build::WithXSpp'}) {
+      (my $ver = $VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
+      $self->_add_prereq('configure_requires', 'Module::Build::WithXSpp', $ver);
+    }
+    if (not exists $p->{configure_requires}{'ExtUtils::CppGuess'}) {
+      (my $ver = $ExtUtils::CppGuess::VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
+      $self->_add_prereq('configure_requires', 'ExtUtils::CppGuess', $ver);
+    }
+    if (not exists $p->{build_requires}{'ExtUtils::CppGuess'}
+        && eval("require ExtUtils::XSpp; 1;")) {
+      (my $ver = $ExtUtils::XSpp::VERSION) =~ s/^(\d+\.\d\d).*$/$1/; # last major release only
+      $self->_add_prereq('build_requires', 'ExtUtils::XSpp', $ver);
+    }
   }
 
   $self->SUPER::auto_require();
@@ -357,7 +365,6 @@ sub compile_xs {
     hiertype => 1,
     typemap    => File::Spec->catfile($build_dir, 'typemap'),
   );
-
 }
 
 # modified from orinal M::B (FIXME: shouldn't do this with private methods)
@@ -576,6 +583,21 @@ additional compiler/linker options.
 This is known to work on GCC (Linux, MacOS, Windows, and ?) as well
 as the MS VC toolchain. Patches to enable other compilers are
 B<very> welcome.
+
+=head2 Automatic dependencies
+
+C<Module::Build::WithXSpp> automatically adds several dependencies
+(on the currently running versions) to your distribution.
+You can disable this by setting
+C<auto_configure_requires =E<gt> 0> in F<Build.PL>.
+
+These are at configure time: C<Module::Build>,
+C<Module::Build::WithXSpp> itself, and C<ExtUtils::CppGuess>.
+Additionally there will be a build-time dependency on
+C<ExtUtils::XSpp>.
+
+You do not have to set these dependencies yourself unless
+you need to set the required versions manually.
 
 =head1 JUMP START FOR THE IMPATIENT
 
