@@ -16,7 +16,6 @@ our $VERSION = '0.05';
 # - configurable C++ source folder(s) (works, needs docs)
 #   => to be documented another time. This is really not a feature that
 #      should be commonly used.
-# - regenerate main.xs only if neccessary
 
 sub new {
   my $proto = shift;
@@ -136,19 +135,34 @@ sub ACTION_generate_main_xs {
   my $self = shift;
 
   my $xs_files = $self->find_xs_files;
+  my $main_xs_file = File::Spec->catfile($self->build_dir, 'main.xs');
 
-  if (keys(%$xs_files) > 1
-      or keys(%$xs_files) == 1
-      && (values(%$xs_files))[0] =~ /\bmain\.xs$/) # FIXME better detection of auto-gen main.XS
-  {
+  if (keys(%$xs_files) > 1) {
     # user knows what she's doing, do not generate XS
     $self->log_info("Found custom XS files. Not auto-generating main XS file...\n");
     return 1;
   }
 
-  $self->log_info("Generating main XS file...\n");
   my $xsp_files = $self->find_xsp_files;
   my $xspt_files = $self->find_xsp_typemaps;
+
+  my $newest = $self->_calc_newest(
+    keys(%$xsp_files),
+    keys(%$xspt_files),
+    'Build.PL',
+    File::Spec->catdir($self->build_dir, 'typemap'),
+  );
+
+  if (keys(%$xs_files) == 1
+      && (values(%$xs_files))[0] =~ /\Q$main_xs_file\E$/)
+  {
+    # is main xs file still current?
+    if (-A $main_xs_file < $newest) {
+      return 1;
+    }
+  }
+
+  $self->log_info("Generating main XS file...\n");
 
   my $module_name = $self->module_name;
   my $xs_code = <<"HERE";
@@ -191,15 +205,10 @@ HERE
   return 1;
 }
 
-sub ACTION_generate_typemap {
+sub _load_extra_typemap_modules {
   my $self = shift;
-  $self->depends_on('create_buildarea');
-
-  $self->log_info("Processing XS typemap files...\n");
 
   require ExtUtils::Typemap;
-  require File::Spec;
-
   my $extra_modules = $self->extra_typemap_modules||{};
 
   foreach my $module (keys %$extra_modules) {
@@ -214,17 +223,33 @@ $@
 HERE
     }
   }
+}
+
+sub ACTION_generate_typemap {
+  my $self = shift;
+  $self->depends_on('create_buildarea');
+
+  require File::Spec;
 
   my $files = $self->find_map_files;
 
-  # merge all typemaps into 'buildtmp/typemap'
-  # creates empty typemap file if there are no files to merge
+  $self->_load_extra_typemap_modules();
+  my $extra_modules = $self->extra_typemap_modules||{};
+
+  my $newest = $self->_calc_newest(
+    keys(%$files),
+    'Build.PL',
+  );
+
   my $out_map_file = File::Spec->catfile($self->build_dir, 'typemap');
-  if (keys %$files and -f $out_map_file) {
-    my $age = -M $out_map_file;
-    return if !grep {-M $_ < $age} keys %$files;
+  if (-f $out_map_file and -A $out_map_file < $newest) {
+    return 1;
   }
 
+  $self->log_info("Processing XS typemap files...\n");
+
+  # merge all typemaps into 'buildtmp/typemap'
+  # creates empty typemap file if there are no files to merge
   my $merged = ExtUtils::Typemap->new;
   $merged->merge(typemap => $_->new) for keys %$extra_modules;
 
@@ -404,6 +429,17 @@ sub _merge_hashes {
     $h{$_} = $m->{$_} foreach keys %$m;
   }
   return \%h;
+}
+
+sub _calc_newest {
+  my $self = shift;
+  my $newest = 1.e99;
+  foreach my $file (@_) {
+    next if not defined $file;
+    my $age = -A $file;
+    $newest = $age if defined $age and $age < $newest;
+  }
+  return $newest;
 }
 
 1;
