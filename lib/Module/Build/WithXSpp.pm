@@ -316,8 +316,9 @@ sub find_xsp_typemaps {
     $xspt_files->{$_} = $_
   }
 
-  my @extra_files = map glob($_),
-                    grep defined $_ && /\S/ && -e $_,
+  my @extra_files = grep -e $_,
+                    map glob($_),
+                    grep defined $_ && /\S/,
                     map { ( File::Spec->catfile($_, 'typemap.xsp'),
                             File::Spec->catfile($_, '*.xspt') ) }
                     @{$self->extra_xs_dirs||[]};
