@@ -1,5 +1,7 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+  - Fixed detection of .xspt XS++ typemap files
+
 0.06   Tue Jul 13 20:00:01 CEST 2010
   - Automatic build-time dependency on EU::XSpp
 
