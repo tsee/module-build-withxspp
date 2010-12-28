@@ -13,6 +13,7 @@ my $build = Module::Build->new(
     'ExtUtils::Typemap' => '0',
     'ExtUtils::ParseXS' => '2.2205',
     'ExtUtils::CppGuess' => '0.04',
+    'Digest::MD5' => '0',
   },
   build_requires => {
     'ExtUtils::CBuilder' => '0',
