@@ -716,6 +716,12 @@ STL C<std::string>s.
 
 Steffen Mueller <smueller@cpan.org>
 
+With input and bug fixes from:
+
+Mattia Barbon
+
+Shmuel Fomberg
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright 2010 Steffen Mueller.
