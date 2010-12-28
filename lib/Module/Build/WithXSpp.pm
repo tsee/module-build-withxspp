@@ -4,6 +4,8 @@ use warnings;
 
 use Module::Build;
 use ExtUtils::CppGuess ();
+use Digest::MD5 ();
+
 our @ISA = qw(Module::Build);
 our $VERSION = '0.07';
 
@@ -278,7 +280,16 @@ sub find_map_files  {
 
   $files->{$_} = $_ foreach map $self->localize_file_path($_),
                             @extra_files;
+
   $files->{'typemap'} = 'typemap' if -f 'typemap';
+
+  # FIXME This is a really sad workaround for stripping duplicate
+  # files for case insensitive file systems. (See RT #64240)
+  my %digests;
+  foreach my $file (keys %$files) {
+    my $digest = Digest::MD5::md5( do {local $/; open my $fh, '<', $file or die $!; <$fh>} );
+    delete $files->{$file} if $digests{$digest}++;
+  }
 
   return $files;
 }
