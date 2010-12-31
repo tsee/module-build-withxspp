@@ -169,7 +169,7 @@ sub ACTION_generate_main_xs {
       && (values(%$xs_files))[0] =~ /\Q$main_xs_file\E$/)
   {
     # is main xs file still current?
-    if (-A $main_xs_file < $newest) {
+    if (-M $main_xs_file < $newest) {
       return 1;
     }
   }
@@ -254,7 +254,7 @@ sub ACTION_generate_typemap {
   );
 
   my $out_map_file = File::Spec->catfile($self->build_dir, 'typemap');
-  if (-f $out_map_file and -A $out_map_file < $newest) {
+  if (-f $out_map_file and -M $out_map_file < $newest) {
     return 1;
   }
 
@@ -457,7 +457,7 @@ sub _calc_newest {
   my $newest = 1.e99;
   foreach my $file (@_) {
     next if not defined $file;
-    my $age = -A $file;
+    my $age = -M $file;
     $newest = $age if defined $age and $age < $newest;
   }
   return $newest;
