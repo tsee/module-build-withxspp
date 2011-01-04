@@ -202,6 +202,14 @@ HERE
   my $typemap_args = '';
   $typemap_args .= '-t ' . Cwd::abs_path($_) . ' ' foreach keys %$xspt_files;
 
+  # FIXME This is a really sad workaround for stripping duplicate
+  # files for case insensitive file systems. (See RT #64240)
+  my %digests;
+  foreach my $file (keys %$xsp_files) {
+    my $digest = Digest::MD5::md5( do {local $/; open my $fh, '<', $file or die $!; <$fh>} );
+    delete $xsp_files->{$file} if $digests{$digest}++;
+  }
+  
   foreach my $xsp_file (keys %$xsp_files) {
     my $full_path_file = Cwd::abs_path($xsp_file);
     my $cmd = "INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $full_path_file\n\n";
