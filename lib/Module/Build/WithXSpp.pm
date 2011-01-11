@@ -4,7 +4,6 @@ use warnings;
 
 use Module::Build;
 use ExtUtils::CppGuess ();
-use Digest::MD5 ();
 
 our @ISA = qw(Module::Build);
 our $VERSION = '0.07';
@@ -202,14 +201,6 @@ HERE
   my $typemap_args = '';
   $typemap_args .= '-t ' . Cwd::abs_path($_) . ' ' foreach keys %$xspt_files;
 
-  # FIXME This is a really sad workaround for stripping duplicate
-  # files for case insensitive file systems. (See RT #64240)
-  my %digests;
-  foreach my $file (keys %$xsp_files) {
-    my $digest = Digest::MD5::md5( do {local $/; open my $fh, '<', $file or die $!; <$fh>} );
-    delete $xsp_files->{$file} if $digests{$digest}++;
-  }
-  
   foreach my $xsp_file (keys %$xsp_files) {
     my $full_path_file = Cwd::abs_path($xsp_file);
     my $cmd = "INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $full_path_file\n\n";
@@ -290,14 +281,6 @@ sub find_map_files  {
                             @extra_files;
 
   $files->{'typemap'} = 'typemap' if -f 'typemap';
-
-  # FIXME This is a really sad workaround for stripping duplicate
-  # files for case insensitive file systems. (See RT #64240)
-  my %digests;
-  foreach my $file (keys %$files) {
-    my $digest = Digest::MD5::md5( do {local $/; open my $fh, '<', $file or die $!; <$fh>} );
-    delete $files->{$file} if $digests{$digest}++;
-  }
 
   return $files;
 }
@@ -447,7 +430,7 @@ sub _infer_xs_spec {
 
 __PACKAGE__->add_property( 'cpp_source_dirs'       => ['src'] );
 __PACKAGE__->add_property( 'build_dir'             => 'buildtmp' );
-__PACKAGE__->add_property( 'extra_xs_dirs'         => [qw(. xs XS xsp XSP)] );
+__PACKAGE__->add_property( 'extra_xs_dirs'         => [".", grep { -d $_ and /^xsp?$/i } glob("*")] );
 __PACKAGE__->add_property( 'extra_typemap_modules' => {} );
 
 
