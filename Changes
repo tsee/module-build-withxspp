@@ -1,7 +1,9 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+0.08   Thu Jan 20 20:00:01 CEST 2010
   - Workaround duplicate typemap files on case-insensitive
-    file systems (RT #64240, diagnosed by Shmuel Fomberg)
+    file systems (RT #64240, diagnosed and fixed
+    by Shmuel Fomberg)
 
 0.07   Thu Jul 15 20:00:01 CEST 2010
   - Fixed detection of .xspt XS++ typemap files
