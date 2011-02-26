@@ -77,7 +77,6 @@ sub new {
 sub _init {
   my $self = shift;
   my $args = shift;
-
 }
 
 sub auto_require {
@@ -175,11 +174,21 @@ sub ACTION_generate_main_xs {
 
   $self->log_info("Generating main XS file...\n");
 
+  my $early_includes = join "\n",
+                       map {
+                         s/^\s*#\s*include\s*//i;
+                         /^"/ or $_ = "<$_>";
+                         "#include $_"
+                       }
+                       @{ $self->early_includes || [] };
+
   my $module_name = $self->module_name;
   my $xs_code = <<"HERE";
 /*
  * WARNING: This file was auto-generated. Changes will be lost!
  */
+
+$early_includes
 
 #ifdef __cplusplus
 extern "C" {
@@ -432,6 +441,7 @@ __PACKAGE__->add_property( 'cpp_source_dirs'       => ['src'] );
 __PACKAGE__->add_property( 'build_dir'             => 'buildtmp' );
 __PACKAGE__->add_property( 'extra_xs_dirs'         => [".", grep { -d $_ and /^xsp?$/i } glob("*")] );
 __PACKAGE__->add_property( 'extra_typemap_modules' => {} );
+__PACKAGE__->add_property( 'early_includes'        => [] );
 
 
 sub _merge_hashes {
@@ -604,6 +614,22 @@ C<ExtUtils::XSpp>.
 You do not have to set these dependencies yourself unless
 you need to set the required versions manually.
 
+=head2 Include files
+
+Unfortunately, including the perl headers produces quite some pollution and
+redefinition of common symbols. Therefore, you can use the C<early_includes>
+option when creating a C<Module::Build::WithXSpp> object to list headers
+to include before the perl headers. If such a supplied header file starts with
+a double quote, C<#include "..."> is used, otherwise C<#include E<lt>...E<gt>>
+is the default. Example:
+
+  Module::Build::WithXSpp->new(
+    early_includes => [qw(
+      "mylocalheader.h"
+      <mysystemheader.h>
+    )]
+  )
+
 =head1 JUMP START FOR THE IMPATIENT
 
 There are as many ways to start a new CPAN distribution as there
@@ -715,7 +741,7 @@ Shmuel Fomberg
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2010 Steffen Mueller.
+Copyright 2010-2011 Steffen Mueller.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
