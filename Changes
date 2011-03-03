@@ -1,6 +1,11 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
-0.08   Thu Jan 20 20:00:01 CEST 2010
+0.09   Thu Mar  3 20:00:01 CEST 2011
+  - Offer early_includes option to include your headers before
+    loading the polluting perl stuff. (Suggested by Shmuel
+    Fomberg)
+
+0.08   Thu Jan 20 20:00:01 CEST 2011
   - Workaround duplicate typemap files on case-insensitive
     file systems (RT #64240, diagnosed and fixed
     by Shmuel Fomberg)
