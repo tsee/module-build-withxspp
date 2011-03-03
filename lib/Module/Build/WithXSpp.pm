@@ -617,7 +617,11 @@ you need to set the required versions manually.
 =head2 Include files
 
 Unfortunately, including the perl headers produces quite some pollution and
-redefinition of common symbols. Therefore, you can use the C<early_includes>
+redefinition of common symbols. Therefore, it may be necessary to include
+some of your headers before including the perl headers. Specifically,
+this is the case for MSVC compilers and the standard library headers.
+
+Therefore, if you care about that platform in the least, you should use the C<early_includes>
 option when creating a C<Module::Build::WithXSpp> object to list headers
 to include before the perl headers. If such a supplied header file starts with
 a double quote, C<#include "..."> is used, otherwise C<#include E<lt>...E<gt>>
