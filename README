@@ -14,7 +14,7 @@ SYNOPSIS
         # normal Module::Build arguments...
         # optional: mix in some extra C typemaps:
         extra_typemap_modules => {
-          'ExtUtils::Typemap::ObjectMap' => '0',
+          'ExtUtils::Typemaps::ObjectMap' => '0',
         },
       );
       $build->create_build_script;
@@ -123,6 +123,26 @@ FEATURES AND CONVENTIONS
     You do not have to set these dependencies yourself unless you need to
     set the required versions manually.
 
+  Include files
+    Unfortunately, including the perl headers produces quite some pollution
+    and redefinition of common symbols. Therefore, it may be necessary to
+    include some of your headers before including the perl headers.
+    Specifically, this is the case for MSVC compilers and the standard
+    library headers.
+
+    Therefore, if you care about that platform in the least, you should use
+    the "early_includes" option when creating a "Module::Build::WithXSpp"
+    object to list headers to include before the perl headers. If such a
+    supplied header file starts with a double quote, "#include "..."" is
+    used, otherwise "#include <...>" is the default. Example:
+
+      Module::Build::WithXSpp->new(
+        early_includes => [qw(
+          "mylocalheader.h"
+          <mysystemheader.h>
+        )]
+      )
+
 JUMP START FOR THE IMPATIENT
     There are as many ways to start a new CPAN distribution as there are
     CPAN distributions. Choose your favourite (I just do "h2xs -An
@@ -144,7 +164,7 @@ JUMP START FOR THE IMPATIENT
           dist_version_from   => 'lib/My/Module.pm',
           build_requires => { 'Test::More' => 0, },
           extra_typemap_modules => {
-            'ExtUtils::Typemap::ObjectMap' => '0',
+            'ExtUtils::Typemaps::ObjectMap' => '0',
             # ...
           },
         );
@@ -174,7 +194,7 @@ JUMP START FOR THE IMPATIENT
 
     * If you need to do any XS type mapping, put your typemaps into a .map
       file in the "xsp" directory. Alternatively, search CPAN for an
-      appropriate typemap module (cf. ExtUtils::Typemap::Default for an
+      appropriate typemap module (cf. ExtUtils::Typemaps::Default for an
       explanation). XS++ typemaps belong into .xspt files in the same
       directory.
 
@@ -191,23 +211,31 @@ SEE ALSO
     ExtUtils::XSpp implements XS++. The "ExtUtils::XSpp" distribution
     contains an examples directory with a usage example of this module.
 
-    ExtUtils::Typemap implements progammatic modification (merging) of C/XS
-    typemaps.
+    ExtUtils::Typemaps implements progammatic modification (merging) of C/XS
+    typemaps. "ExtUtils::Typemaps" was renamed from "ExtUtils::Typemap"
+    since the original name conflicted with the core typemap file on
+    case-insensitive file systems.
 
-    ExtUtils::Typemap::Default explains the concept of having typemaps
+    ExtUtils::Typemaps::Default explains the concept of having typemaps
     shipped as modules.
 
-    ExtUtils::Typemap::ObjectMap is such a typemap module and probably very
+    ExtUtils::Typemaps::ObjectMap is such a typemap module and probably very
     useful for any XS++ module.
 
-    ExtUtils::Typemap::STL::String implements simple typemapping for STL
+    ExtUtils::Typemaps::STL::String implements simple typemapping for STL
     "std::string"s.
 
 AUTHOR
     Steffen Mueller <smueller@cpan.org>
 
+    With input and bug fixes from:
+
+    Mattia Barbon
+
+    Shmuel Fomberg
+
 COPYRIGHT AND LICENSE
-    Copyright 2010 Steffen Mueller.
+    Copyright 2010, 2011 Steffen Mueller.
 
     This program is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.
@@ -216,6 +244,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 682:
+    Around line 717:
         You forgot a '=back' before '=head1'
 
