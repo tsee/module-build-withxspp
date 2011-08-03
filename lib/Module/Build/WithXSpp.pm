@@ -228,7 +228,7 @@ HERE
 sub _load_extra_typemap_modules {
   my $self = shift;
 
-  require ExtUtils::Typemap;
+  require ExtUtils::Typemaps;
   my $extra_modules = $self->extra_typemap_modules||{};
 
   foreach my $module (keys %$extra_modules) {
@@ -270,11 +270,11 @@ sub ACTION_generate_typemap {
 
   # merge all typemaps into 'buildtmp/typemap'
   # creates empty typemap file if there are no files to merge
-  my $merged = ExtUtils::Typemap->new;
+  my $merged = ExtUtils::Typemaps->new;
   $merged->merge(typemap => $_->new) for keys %$extra_modules;
 
   foreach my $file (keys %$files) {
-    $merged->merge(typemap => ExtUtils::Typemap->new(file => $file));
+    $merged->merge(typemap => ExtUtils::Typemaps->new(file => $file));
   }
   $merged->write(file => $out_map_file);
 }
@@ -486,7 +486,7 @@ In F<Build.PL>:
     # normal Module::Build arguments...
     # optional: mix in some extra C typemaps:
     extra_typemap_modules => {
-      'ExtUtils::Typemap::ObjectMap' => '0',
+      'ExtUtils::Typemaps::ObjectMap' => '0',
     },
   );
   $build->create_build_script;
@@ -661,7 +661,7 @@ This is what your F<Build.PL> should look like:
     dist_version_from   => 'lib/My/Module.pm',
     build_requires => { 'Test::More' => 0, },
     extra_typemap_modules => {
-      'ExtUtils::Typemap::ObjectMap' => '0',
+      'ExtUtils::Typemaps::ObjectMap' => '0',
       # ...
     },
   );
@@ -702,7 +702,7 @@ in XS++. For details on XS++, see L<ExtUtils::XSpp>.
 If you need to do any XS type mapping, put your typemaps
 into a F<.map> file in the C<xsp> directory. Alternatively,
 search CPAN for an appropriate typemap module (cf.
-L<ExtUtils::Typemap::Default> for an explanation).
+L<ExtUtils::Typemaps::Default> for an explanation).
 XS++ typemaps belong into F<.xspt> files in the same directory.
 
 =item *
@@ -721,16 +721,18 @@ L<Module::Build> upon which this module is based.
 L<ExtUtils::XSpp> implements XS++. The C<ExtUtils::XSpp> distribution
 contains an F<examples> directory with a usage example of this module.
 
-L<ExtUtils::Typemap> implements progammatic modification (merging)
-of C/XS typemaps.
+L<ExtUtils::Typemaps> implements progammatic modification (merging)
+of C/XS typemaps. C<ExtUtils::Typemaps> was renamed from C<ExtUtils::Typemap>
+since the original name conflicted with the core F<typemap> file on
+case-insensitive file systems.
 
-L<ExtUtils::Typemap::Default> explains the concept of having typemaps
+L<ExtUtils::Typemaps::Default> explains the concept of having typemaps
 shipped as modules.
 
-L<ExtUtils::Typemap::ObjectMap> is such a typemap module and
+L<ExtUtils::Typemaps::ObjectMap> is such a typemap module and
 probably very useful for any XS++ module.
 
-L<ExtUtils::Typemap::STL::String> implements simple typemapping for
+L<ExtUtils::Typemaps::STL::String> implements simple typemapping for
 STL C<std::string>s.
 
 =head1 AUTHOR
@@ -745,7 +747,7 @@ Shmuel Fomberg
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2010-2011 Steffen Mueller.
+Copyright 2010, 2011 Steffen Mueller.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
