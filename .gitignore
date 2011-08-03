@@ -3,8 +3,8 @@ blib
 Build
 Build.bat
 MANIFEST.bak
-META.yml
-MYMETA.yml
+META.*
+MYMETA.*
 t/makemaker
 t/module_build
 *.def
