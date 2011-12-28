@@ -141,6 +141,14 @@ sub ACTION_code {
   return $self->SUPER::ACTION_code(@_);
 }
 
+# I guess I should use a module here.
+sub _naive_shell_escape {
+  my $s = shift;
+  $s =~ s/\\/\\\\/g;
+  $s =~ s/"/\\"/g;
+  $s
+}
+
 sub ACTION_generate_main_xs {
   my $self = shift;
 
@@ -208,11 +216,11 @@ MODULE = $module_name	PACKAGE = $module_name
 HERE
 
   my $typemap_args = '';
-  $typemap_args .= '-t ' . Cwd::abs_path($_) . ' ' foreach keys %$xspt_files;
+  $typemap_args .= '-t "' . _naive_shell_escape(Cwd::abs_path($_)) . '" ' foreach keys %$xspt_files;
 
   foreach my $xsp_file (keys %$xsp_files) {
-    my $full_path_file = Cwd::abs_path($xsp_file);
-    my $cmd = "INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $full_path_file\n\n";
+    my $full_path_file = _naive_shell_escape( Cwd::abs_path($xsp_file) );
+    my $cmd = qq{INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args "$full_path_file"\n\n};
     $xs_code .= $cmd;
   }
 
