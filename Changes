@@ -1,5 +1,8 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+0.11   Wed Dec 28 08:00 CEST 2011
+  - Fix for spaces in paths (attempt 1)
+
 0.10   Wed Aug  3 19:19 CEST 2011
   - ExtUtils::Typemap has been renamed to ExtUtils::Typemaps.
 
