@@ -722,6 +722,8 @@ these magic two lines to your main module:
   require XSLoader;
   XSLoader::load('My::Module', $VERSION);
 
+=back
+
 =head1 SEE ALSO
 
 L<Module::Build> upon which this module is based.
