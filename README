@@ -7,9 +7,9 @@ SYNOPSIS
       use strict;
       use warnings;
       use 5.006001;
-  
+
       use Module::Build::WithXSpp;
-  
+
       my $build = Module::Build::WithXSpp->new(
         # normal Module::Build arguments...
         # optional: mix in some extra C typemaps:
@@ -57,7 +57,7 @@ FEATURES AND CONVENTIONS
     In xsp/MyClass.xsp
 
       #include "mystuff.h"
-  
+
       %{
         ... verbatim XS here ...
       %}
@@ -134,13 +134,42 @@ FEATURES AND CONVENTIONS
     the "early_includes" option when creating a "Module::Build::WithXSpp"
     object to list headers to include before the perl headers. If such a
     supplied header file starts with a double quote, "#include "..."" is
-    used, otherwise "#include <...>" is the default. Example:
+    used, otherwise "#include <...>" is the default.
+
+    Additionally, you can use "includes" in the same way as "early_includes"
+    to include files after including headers, but before including the first
+    xsp file. Since the order xsp files is undefined, this is useful
+
+    You can also use "preamble" to insert a C file just after where
+    "includes" is inserted. This is useful if you have a lot to include or
+    need extra control with #ifdef and such. You should take care that this
+    file isn't automatically compiled with the rest of the files in xsp/ or
+    src/. For this reason, it's a good idea to give the preamble file no
+    file extension or a unique extension.
+
+    This also comes in the form of "early_preamble", which is a C or C++
+    file inserted directly after "early_includes".
+
+    All of this is shown in use below:
 
       Module::Build::WithXSpp->new(
+        # include files before perl headers
         early_includes => [qw(
           "mylocalheader.h"
           <mysystemheader.h>
-        )]
+        )],
+
+        # insert a C or C++ file directly after that
+        early_preamble => 'src/early_preamble',
+
+        # include files just after perl headers
+        early_includes => [qw(
+          "myotherlocalheader.h"
+          <myothersystemheader.h>
+        )],
+
+        # insert a C or C++ file directly after that
+        preamble => 'src/preamble',
       )
 
 JUMP START FOR THE IMPATIENT
@@ -156,7 +185,7 @@ JUMP START FOR THE IMPATIENT
         use warnings;
         use 5.006001;
         use Module::Build::WithXSpp;
-  
+
         my $build = Module::Build::WithXSpp->new(
           module_name         => 'My::Module',
           license             => 'perl',
