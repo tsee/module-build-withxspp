@@ -1,5 +1,8 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+  - Added extra options to include headers before and after
+    perl headers. (done by Blaise Roth)
+
 0.11   Wed Dec 28 08:00 CEST 2011
   - Fix for spaces in paths (attempt 1)
 

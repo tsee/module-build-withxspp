@@ -149,6 +149,25 @@ sub _naive_shell_escape {
   $s
 }
 
+sub _includes_to_string {
+  return join "\n",
+         map {
+           s/^\s*#\s*include\s*//i;
+           unless(/^"/ or /^</) { $_ = "<$_>" }
+           "#include $_"
+         }
+         @_;
+}
+
+sub _file_to_string {
+  my $file = shift;
+  open my $fh, $file
+    or die "Could not open file 'file' for reading: $!";
+  # slurp
+  local $/;
+  return <$fh>;
+}
+
 sub ACTION_generate_main_xs {
   my $self = shift;
 
@@ -182,13 +201,24 @@ sub ACTION_generate_main_xs {
 
   $self->log_info("Generating main XS file...\n");
 
-  my $early_includes = join "\n",
-                       map {
-                         s/^\s*#\s*include\s*//i;
-                         /^"/ or $_ = "<$_>";
-                         "#include $_"
-                       }
-                       @{ $self->early_includes || [] };
+  my $early_includes = "";
+  my $includes       = "";
+  $early_includes = "/* early includes */\n" . _includes_to_string(@{ $self->early_includes })
+    if @{$self->early_includes};
+  $includes = "/* includes */\n" . _includes_to_string(@{ $self->includes })
+    if @{$self->includes};
+
+  my $early_preamble = "";
+  my $preamble = "";
+
+  if(defined(my $early_preamble_file = $self->early_preamble)) {
+    $early_preamble = "/* early_preamble from '$early_preamble_file' */\n"
+                    . _file_to_string($early_preamble_file);
+  }
+  if(defined(my $preamble_file = $self->preamble)) {
+    $preamble = "/* preamble from '$preamble_file' */\n"
+              . _file_to_string($preamble_file);
+  }
 
   my $module_name = $self->module_name;
   my $xs_code = <<"HERE";
@@ -197,6 +227,7 @@ sub ACTION_generate_main_xs {
  */
 
 $early_includes
+$early_preamble
 
 #ifdef __cplusplus
 extern "C" {
@@ -210,6 +241,9 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+$includes
+$preamble
 
 MODULE = $module_name	PACKAGE = $module_name
 
@@ -450,6 +484,9 @@ __PACKAGE__->add_property( 'build_dir'             => 'buildtmp' );
 __PACKAGE__->add_property( 'extra_xs_dirs'         => [".", grep { -d $_ and /^xsp?$/i } glob("*")] );
 __PACKAGE__->add_property( 'extra_typemap_modules' => {} );
 __PACKAGE__->add_property( 'early_includes'        => [] );
+__PACKAGE__->add_property( 'includes'              => [] );
+__PACKAGE__->add_property( 'early_preamble'        => undef );
+__PACKAGE__->add_property( 'preamble'              => undef );
 
 
 sub _merge_hashes {
@@ -487,9 +524,9 @@ In F<Build.PL>:
   use strict;
   use warnings;
   use 5.006001;
-  
+
   use Module::Build::WithXSpp;
-  
+
   my $build = Module::Build::WithXSpp->new(
     # normal Module::Build arguments...
     # optional: mix in some extra C typemaps:
@@ -545,7 +582,7 @@ In F<src/mystuff.h>:
 In F<xsp/MyClass.xsp>
 
   #include "mystuff.h"
-  
+
   %{
     ... verbatim XS here ...
   %}
@@ -633,13 +670,41 @@ Therefore, if you care about that platform in the least, you should use the C<ea
 option when creating a C<Module::Build::WithXSpp> object to list headers
 to include before the perl headers. If such a supplied header file starts with
 a double quote, C<#include "..."> is used, otherwise C<#include E<lt>...E<gt>>
-is the default. Example:
+is the default.
+
+Additionally, you can use C<includes> in the same way as C<early_includes> to
+include files after including headers, but before including the first xsp file.
+Since the order xsp files is undefined, this is useful
+
+You can also use C<preamble> to insert a C file just after where C<includes> is inserted.
+This is useful if you have a lot to include or need extra control with #ifdef and such.
+You should take care that this file isn't automatically compiled with the rest of the files
+in xsp/ or src/. For this reason, it's a good idea to give the preamble file no file extension
+or a unique extension.
+
+This also comes in the form of C<early_preamble>, which is a C or C++ file inserted directly
+after C<early_includes>.
+
+All of this is shown in use below:
 
   Module::Build::WithXSpp->new(
+    # include files before perl headers
     early_includes => [qw(
       "mylocalheader.h"
       <mysystemheader.h>
-    )]
+    )],
+
+    # insert a C or C++ file directly after that
+    early_preamble => 'src/early_preamble',
+
+    # include files just after perl headers
+    early_includes => [qw(
+      "myotherlocalheader.h"
+      <myothersystemheader.h>
+    )],
+
+    # insert a C or C++ file directly after that
+    preamble => 'src/preamble',
   )
 
 =head1 JUMP START FOR THE IMPATIENT
@@ -661,7 +726,7 @@ This is what your F<Build.PL> should look like:
   use warnings;
   use 5.006001;
   use Module::Build::WithXSpp;
-  
+
   my $build = Module::Build::WithXSpp->new(
     module_name         => 'My::Module',
     license             => 'perl',
@@ -721,6 +786,8 @@ these magic two lines to your main module:
 
   require XSLoader;
   XSLoader::load('My::Module', $VERSION);
+
+=back
 
 =head1 SEE ALSO
 
