@@ -1,5 +1,8 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+0.12   Sat Oct  6 11:40 CEST 2012
+  - POD fixes from Florian Schlichting
+
 0.11   Wed Dec 28 08:00 CEST 2011
   - Fix for spaces in paths (attempt 1)
 
