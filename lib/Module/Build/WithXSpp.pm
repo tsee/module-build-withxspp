@@ -588,7 +588,7 @@ You may use multiple F<.map> files if the entries do not
 collide. They will be merged at build time into a complete F<typemap> file
 in the temporary build directory.
 
-The C<extra_typemap_modules> option is the prefered way to do XS typemapping.
+The C<extra_typemap_modules> option is the preferred way to do XS typemapping.
 It works like any other C<Module::Build> argument that declares dependencies
 except that it loads the listed modules at build time and includes their
 typemaps into the build.
@@ -722,6 +722,8 @@ these magic two lines to your main module:
   require XSLoader;
   XSLoader::load('My::Module', $VERSION);
 
+=back
+
 =head1 SEE ALSO
 
 L<Module::Build> upon which this module is based.
@@ -753,9 +755,11 @@ Mattia Barbon
 
 Shmuel Fomberg
 
+Florian Schlichting
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2010, 2011 Steffen Mueller.
+Copyright 2010, 2011, 2012 Steffen Mueller.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
