@@ -6,7 +6,7 @@ use Module::Build;
 use ExtUtils::CppGuess ();
 
 our @ISA = qw(Module::Build);
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 # TODO
 # - configurable set of xsp and xspt files (and XS typemaps?)
@@ -121,6 +121,10 @@ sub ACTION_code {
   $self->depends_on('generate_main_xs');
 
   my $files = {};
+  foreach my $file (@{$self->cpp_source_files}) {
+    $files->{$file} = undef;
+  }
+
   foreach my $ext (qw(c cc cxx cpp C)) {
     foreach my $dir (@{$self->cpp_source_dirs||[]}) {
       my $this = $self->_find_file_by_type($ext, $dir);
@@ -445,6 +449,7 @@ sub _infer_xs_spec {
   return \%spec;
 }
 
+__PACKAGE__->add_property( 'cpp_source_files'      => [] );
 __PACKAGE__->add_property( 'cpp_source_dirs'       => ['src'] );
 __PACKAGE__->add_property( 'build_dir'             => 'buildtmp' );
 __PACKAGE__->add_property( 'extra_xs_dirs'         => [".", grep { -d $_ and /^xsp?$/i } glob("*")] );
@@ -759,7 +764,7 @@ Florian Schlichting
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2010, 2011, 2012 Steffen Mueller.
+Copyright 2010, 2011, 2012, 2013 Steffen Mueller.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

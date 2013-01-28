@@ -1,5 +1,9 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+0.13   Mon Jan 28 20:50 CEST 2013
+  - Additional support for 'cpp_source_files' property on top of
+    'cpp_source_dirs'.
+
 0.12   Sat Oct  6 11:40 CEST 2012
   - POD fixes from Florian Schlichting
 
