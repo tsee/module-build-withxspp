@@ -1,5 +1,8 @@
 Revision history for Perl extension Module::Build::WithXSpp.
 
+0.13   Mon Sep 30 16:00 CEST 2013
+  - Better detection of when .xs file needs regenerating.
+
 0.13   Mon Jan 28 20:50 CEST 2013
   - Additional support for 'cpp_source_files' property on top of
     'cpp_source_dirs'.
