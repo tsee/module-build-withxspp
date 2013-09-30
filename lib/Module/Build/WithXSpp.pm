@@ -172,18 +172,26 @@ sub ACTION_generate_main_xs {
     keys(%$xsp_files),
     keys(%$xspt_files),
     'Build.PL',
-    File::Spec->catdir($self->build_dir, 'typemap'),
+    # Commented out: Do not include generated typemap in -M check
+    # because -M granularity causes unnecessary regens.
+    # See "_mbwxspp_force_xs_regen"
+    #File::Spec->catdir($self->build_dir, 'typemap'),
   );
+
+  my $main_time = 1e99;
+  $main_time = -M $main_xs_file
+    if defined $main_xs_file and -e $main_xs_file;
 
   if (keys(%$xs_files) == 1
       && (values(%$xs_files))[0] =~ /\Q$main_xs_file\E$/)
   {
     # is main xs file still current?
-    if (-M $main_xs_file < $newest) {
+    if (!$self->{_mbwxspp_force_xs_regen} && $main_time < $newest) {
       return 1;
     }
   }
 
+  delete $self->{_mbwxspp_force_xs_regen}; # done its job
   $self->log_info("Generating main XS file...\n");
 
   my $early_includes = join "\n",
@@ -289,6 +297,8 @@ sub ACTION_generate_typemap {
     $merged->merge(typemap => ExtUtils::Typemaps->new(file => $file));
   }
   $merged->write(file => $out_map_file);
+
+  $self->{_mbwxspp_force_xs_regen} = 1;
 }
 
 sub find_map_files  {
