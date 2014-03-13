@@ -45,6 +45,8 @@ sub new {
     delete $args{extra_linker_flags};
   }
 
+  my $extra_xspp_flags = delete $args{extra_xspp_flags};
+
   # add the typemap modules to the build dependencies
   my $build_requires = $args{build_requires}||{};
   my $extra_typemap_modules = $args{extra_typemap_modules}||{};
@@ -68,6 +70,15 @@ sub new {
   push @{$self->extra_compiler_flags},
     map "-I$_",
     (@{$self->cpp_source_dirs||[]}, $self->build_dir);
+
+  if (defined $extra_xspp_flags) {
+    if (!ref($extra_xspp_flags)) {
+      $self->extra_xspp_flags([$extra_xspp_flags]);
+    }
+    else {
+      $self->extra_xspp_flags($extra_xspp_flags)
+    }
+  }
 
   $self->_init(\%args);
 
@@ -202,6 +213,7 @@ sub ACTION_generate_main_xs {
                        }
                        @{ $self->early_includes || [] };
 
+  my $xsp_flags = join ' ', @{$self->extra_xspp_flags};
   my $module_name = $self->module_name;
   my $xs_code = <<"HERE";
 /*
@@ -232,7 +244,7 @@ HERE
 
   foreach my $xsp_file (keys %$xsp_files) {
     my $full_path_file = _naive_shell_escape( Cwd::abs_path($xsp_file) );
-    my $cmd = qq{INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args "$full_path_file"\n\n};
+    my $cmd = qq{INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $xsp_flags "$full_path_file"\n\n};
     $xs_code .= $cmd;
   }
 
@@ -464,6 +476,7 @@ __PACKAGE__->add_property( 'cpp_source_dirs'       => ['src'] );
 __PACKAGE__->add_property( 'build_dir'             => 'buildtmp' );
 __PACKAGE__->add_property( 'extra_xs_dirs'         => [".", grep { -d $_ and /^xsp?$/i } glob("*")] );
 __PACKAGE__->add_property( 'extra_typemap_modules' => {} );
+__PACKAGE__->add_property( 'extra_xspp_flags'      => [] );
 __PACKAGE__->add_property( 'early_includes'        => [] );
 
 
