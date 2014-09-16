@@ -163,9 +163,7 @@ sub _naive_shell_escape {
   my $s = shift;
   $s =~ s/\\/\\\\/g;
   $s =~ s/"/\\"/g;
-  $s;
-
-  return 1;
+  $s
 }
 
 sub ACTION_generate_main_xs {
