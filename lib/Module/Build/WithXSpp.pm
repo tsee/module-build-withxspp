@@ -52,9 +52,9 @@ sub new {
   my $extra_typemap_modules = $args{extra_typemap_modules}||{};
   # FIXME: This prevents any potential subclasses from fudging with the extra typemaps?
   foreach my $module (keys %$extra_typemap_modules) {
-    if (not defined $build_requires->{$module}
-        or defined($extra_typemap_modules->{$module})
-           && $build_requires->{$module} < $extra_typemap_modules->{$module})
+    if (!defined $build_requires->{$module}
+        || defined $extra_typemap_modules->{$module}
+        && $build_requires->{$module} < $extra_typemap_modules->{$module})
     {
       $build_requires->{$module} = $extra_typemap_modules->{$module};
     }
@@ -123,6 +123,8 @@ sub ACTION_create_buildarea {
   my $self = shift;
   mkdir($self->build_dir);
   $self->add_to_cleanup($self->build_dir);
+
+  return 1;
 }
 
 sub ACTION_code {
@@ -242,15 +244,57 @@ HERE
   my $typemap_args = '';
   $typemap_args .= '-t "' . _naive_shell_escape(Cwd::abs_path($_)) . '" ' foreach keys %$xspt_files;
 
-  foreach my $xsp_file (keys %$xsp_files) {
-    my $full_path_file = _naive_shell_escape( Cwd::abs_path($xsp_file) );
-    my $cmd = qq{INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $xsp_flags "$full_path_file"\n\n};
-    $xs_code .= $cmd;
+  if($self->order_xsp_same_as_headers == 1) {
+    ############# Get XSPs in same order as headers START ###############
+    my @orderedheaders = $self->get_ordered_headers();
+    my $orderedxsps = {};
+  
+    my @orderedxspfiles = ();
+    my @unorderedxspfiles = ();
+    for(my $x = 0; $x < scalar(grep {defined $_} @orderedheaders); ++$x) {
+      my @matches = $orderedheaders[$x] =~ /([a-zA-Z0-9-_\.]*)\.h/g; 
+    
+      foreach my $file (keys %$xsp_files) {
+        my @xspmatches = $file =~ /([a-zA-Z0-9-_\.]*)\.xsp/g; 
+        if($xspmatches[0] eq $matches[0]) {
+          $orderedxsps->{$file} = $xsp_files->{$file};
+          push(@orderedxspfiles, $file);
+        }
+      }
+    }
+  
+    foreach my $file (keys %$xsp_files) {
+  
+      my $foundcorresponding = 0;
+      for(my $x = 0; $x < scalar(grep {defined $_} @orderedxspfiles); ++$x) {
+        if($orderedxspfiles[$x] eq $file) {
+          $foundcorresponding = 1;
+        }
+      }
+  
+      if($foundcorresponding == 0) {
+        $orderedxsps->{$file} = $xsp_files->{$file};
+        push(@orderedxspfiles, $file);
+      }
+    }
+  
+    for(my $x = 0; $x < scalar(grep {defined $_} @orderedxspfiles); ++$x) {
+      my $full_path_file = _naive_shell_escape( Cwd::abs_path($orderedxspfiles[$x]) );
+      my $cmd = qq{INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $xsp_flags "$full_path_file"\n\n};
+      $xs_code .= $cmd;
+    }
+    ############# Get XSPs in same order as headers END ###############
+  } else {
+    foreach my $xsp_file (keys %$xsp_files) {
+      my $full_path_file = _naive_shell_escape( Cwd::abs_path($xsp_file) );
+      my $cmd = qq{INCLUDE_COMMAND: \$^X -MExtUtils::XSpp::Cmd -e xspp -- $typemap_args $xsp_flags "$full_path_file"\n\n};
+      $xs_code .= $cmd;
+    }
   }
 
   my $outfile = File::Spec->catdir($self->build_dir, 'main.xs');
   open my $fh, '>', $outfile
-    or die "Could not open '$outfile' for writing: $!";
+    or croak("Could not open '$outfile' for writing: $!");
   print $fh $xs_code;
   close $fh;
 
@@ -275,6 +319,8 @@ $@
 HERE
     }
   }
+
+  return 1;
 }
 
 sub ACTION_generate_typemap {
@@ -311,6 +357,8 @@ sub ACTION_generate_typemap {
   $merged->write(file => $out_map_file);
 
   $self->{_mbwxspp_force_xs_regen} = 1;
+
+  return 1;
 }
 
 sub find_map_files  {
@@ -348,6 +396,82 @@ sub find_xsp_files  {
   }
 
   return $files;
+}
+
+sub uniq {
+  my %seen;
+  grep !$seen{$_}++, @_;
+  return 1;
+}
+
+sub get_ordered_headers {
+  my $self = shift;
+
+  my @extra_headerfiles = map glob($_),
+                    map File::Spec->catfile($_, '*.h'),
+                    (@{$self->cpp_source_dirs||[]});
+
+  my $headerfiles = $self->_find_file_by_type('h', './');
+  $headerfiles->{$_} = $_ foreach map $self->localize_file_path($_),
+                            @extra_headerfiles;
+
+  my @acceptablefiles = (); 
+  foreach my $file (keys %$headerfiles) {
+    if($file ne "./ppport.h") {
+#      warn "Acceptable file: ".$file."\n";
+      push(@acceptablefiles,$file);
+    }
+  }
+
+  my @orderedheaderfiles = ();
+
+  # loop through all files, get the includes for each and order them accordingly
+  for(my $x = 0; $x < scalar(grep {defined $_} @acceptablefiles); ++$x) {
+    my $added_moved = $self->add_ordered($acceptablefiles[$x], \@orderedheaderfiles, 1); # 0 == added, 1 == moved
+      $self->get_includes_from_file($acceptablefiles[$x],\@orderedheaderfiles,\@acceptablefiles, 1);
+  }
+
+  return @orderedheaderfiles;
+}
+
+sub get_includes_from_file {
+  my ($self, $filename, $orderedheaderfiles, $acceptablefiles, $indent) = @_;
+
+  # First lets get this file's includes
+  open( my $FILE, "<", $filename) or croak("Couldn't open file: $!"); ;
+  my $string = join("", <$FILE>); 
+  close $FILE;
+
+  my @matches = $string =~ /#include *[\"\<]([a-zA-Z0-9-_\.]*\.h)[\"\>]/g;
+  for(my $x = 0; $x < scalar(grep {defined $_} @matches); ++$x) {
+    # check if this include is in the src directory, add it to the ordered list
+    # if it isnt. wi ll add it to the order location
+    for(my $y = 0; $y < scalar(grep {defined $_} @$acceptablefiles); ++$y) {
+      my @fileparts = @$acceptablefiles[$y] =~ /([a-zA-Z0-9-_\.]*\.h)/g;
+      if($fileparts[0] eq $matches[$x]) {
+        my $added_moved = $self->add_ordered(@$acceptablefiles[$y], \@$orderedheaderfiles, $indent+1);
+          $self->get_includes_from_file(@$acceptablefiles[$y],\@$orderedheaderfiles,\@$acceptablefiles, $indent+1);
+      }
+    }
+  }
+
+  return 1;
+}
+
+sub add_ordered {
+  my ($self, $filename, $orderedheaderfiles, $indent) = @_;
+
+  my $addedorremoved = 0;
+  for(my $x = 0; $x < scalar(grep {defined $_} @$orderedheaderfiles); ++$x) {
+    if($filename eq @$orderedheaderfiles[$x]) {
+      splice @$orderedheaderfiles, $x, 1;
+      $addedorremoved = 1;
+    }
+  }
+
+  push(@$orderedheaderfiles, $filename);
+
+  return $addedorremoved;
 }
 
 sub find_xsp_typemaps {
@@ -471,13 +595,14 @@ sub _infer_xs_spec {
   return \%spec;
 }
 
-__PACKAGE__->add_property( 'cpp_source_files'      => [] );
-__PACKAGE__->add_property( 'cpp_source_dirs'       => ['src'] );
-__PACKAGE__->add_property( 'build_dir'             => 'buildtmp' );
-__PACKAGE__->add_property( 'extra_xs_dirs'         => [".", grep { -d $_ and /^xsp?$/i } glob("*")] );
-__PACKAGE__->add_property( 'extra_typemap_modules' => {} );
-__PACKAGE__->add_property( 'extra_xspp_flags'      => [] );
-__PACKAGE__->add_property( 'early_includes'        => [] );
+__PACKAGE__->add_property( 'cpp_source_files'           => [] );
+__PACKAGE__->add_property( 'cpp_source_dirs'            => ['src'] );
+__PACKAGE__->add_property( 'build_dir'                  => 'buildtmp' );
+__PACKAGE__->add_property( 'extra_xs_dirs'              => [".", grep { -d $_ and /^xsp?$/i } glob("*")] );
+__PACKAGE__->add_property( 'extra_typemap_modules'      => {} );
+__PACKAGE__->add_property( 'extra_xspp_flags'           => [] );
+__PACKAGE__->add_property( 'early_includes'             => [] );
+__PACKAGE__->add_property( 'order_xsp_same_as_headers'  => 0 );
 
 
 sub _merge_hashes {
